@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>商品运营分析报告 - <!-- PLACEHOLDER: generate_time -->2026-07-06 09:32:08<!-- ENDPLACEHOLDER --></title>
+    <title>商品运营分析报告 - <!-- PLACEHOLDER: generate_time -->2026-07-06 11:04:19<!-- ENDPLACEHOLDER --></title>
     <style>
         * { margin:0; padding:0; box-sizing:border-box; }
         body { font-family:'Microsoft YaHei',Arial,sans-serif; background:linear-gradient(135deg,#667eea,#764ba2); padding:20px; min-height:100vh; }
@@ -171,27 +171,86 @@
 <!-- 顶部标题 -->
 <div class="header">
     <h1>📊 商品运营分析报告</h1>
-    <div class="subtitle">生成时间：<!-- PLACEHOLDER: generate_time --><!-- ENDPLACEHOLDER --> | 数据周期：<!-- PLACEHOLDER: data_period -->2026-07-03<!-- ENDPLACEHOLDER --></div>
+    <div class="subtitle">生成时间：<!-- PLACEHOLDER: generate_time --><!-- ENDPLACEHOLDER --> | 数据周期：<!-- PLACEHOLDER: data_period -->2026-07-05<!-- ENDPLACEHOLDER --></div>
 </div>
 
 <!-- 主Tab导航 -->
 <div class="main-tabs">
-    <button class="main-tab-btn active" onclick="showMainTab('tab1', this)">📈 结果指标</button>
-    <button class="main-tab-btn" onclick="showMainTab('tab2', this)">📋 过程指标</button>
-    <button class="main-tab-btn" onclick="showMainTab('tab3', this)">🎯 玉林商KPI进度</button>
+    <button class="main-tab-btn active" onclick="showMainTab('tab1', this)">📊 分区进度</button>
+    <button class="main-tab-btn" onclick="showMainTab('tab2', this)">🎯 玉林商进度</button>
+    <button class="main-tab-btn" onclick="showMainTab('tab3', this)">📋 其他指标</button>
 </div>
 
-<!-- ==================== Tab 1: 结果指标 ==================== -->
+<!-- ==================== Tab 1: 分区进度 ==================== -->
 <div id="tab1" class="tab-content active">
     <!-- 子Tab导航 -->
     <div class="sub-tabs">
         <button class="sub-tab-btn active" onclick="showSubTab('district', this, 'result')">📊 分区进度</button>
         <button class="sub-tab-btn" onclick="showSubTab('yulin', this, 'result')">🏪 玉林商进度</button>
-        <button class="sub-tab-btn" onclick="showSubTab('hepu', this, 'result')">🏪 合浦商进度</button>
     </div>
 
     <!-- 分区进度 -->
     <div id="result-district" class="sub-tab-content active">
+        <!-- KPI指标卡片 -->
+        <!-- PLACEHOLDER: kpi_indicators_district -->
+<div style="padding:16px 20px 12px;">
+            <div style="font-size:16px;font-weight:700;color:#333;margin-bottom:12px;display:flex;align-items:center;gap:8px;">
+                <span>📊</span><span>KPI指标</span><span style="font-size:12px;font-weight:400;color:#999;margin-left:auto;">07月03日</span>
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;">
+                <div class="kpi-indicator-card">
+            <div class="kpi-indicator-icon" style="background:linear-gradient(135deg,#667eea,#764ba2);">🍚</div>
+            <div class="kpi-indicator-body">
+                <div class="kpi-indicator-title">拼好饭订单完成率</div>
+                <div class="kpi-indicator-value" style="color:#f5222d;">9.52%</div>
+                <div class="kpi-indicator-detail">
+                    <span>时间GAP: <b style="color:#f5222d">-0.00%</b></span>
+                    <span>时间进度: 9.68%</span>
+                </div>
+            </div>
+        </div>
+                <div class="kpi-indicator-card">
+            <div class="kpi-indicator-icon" style="background:linear-gradient(135deg,#f093fb,#f5576c);">🎯</div>
+            <div class="kpi-indicator-body">
+                <div class="kpi-indicator-title">重点货盘攻克率</div>
+                <div class="kpi-indicator-value" style="color:#f5222d;">29.63%</div>
+                <div class="kpi-indicator-detail">
+                    <span>已攻克: <b>14983/50563</b></span>
+                    <span>目标: ≥75%</span>
+                </div>
+            </div>
+        </div>
+                <div class="kpi-indicator-card">
+            <div class="kpi-indicator-icon" style="background:linear-gradient(135deg,#4facfe,#00f2fe);">🎫</div>
+            <div class="kpi-indicator-body">
+                <div class="kpi-indicator-title">商家参与优惠活动覆盖率</div>
+                <div class="kpi-indicator-value" style="color:#f5222d;">41.16%</div>
+                <div class="kpi-indicator-detail">
+                    <span>达标系数: <b>×0.8</b></span>
+                    <span>已统计: W1周均值</span>
+                </div>
+                <div class="kpi-indicator-week" style="font-size:11px;color:#999;margin-top:4px;">W1:41.2%</div>
+            </div>
+        </div>
+            </div>
+        </div>
+        <style>
+            .kpi-indicator-card {display:flex;align-items:flex-start;gap:12px;background:#fff;border-radius:10px;padding:16px;box-shadow:0 2px 8px rgba(0,0,0,0.06);border:1px solid #eee;transition:transform 0.2s;}
+            .kpi-indicator-card:hover {transform:translateY(-2px);box-shadow:0 4px 12px rgba(0,0,0,0.1);}
+            .kpi-indicator-icon {width:44px;height:44px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;}
+            .kpi-indicator-body {flex:1;min-width:0;}
+            .kpi-indicator-title {font-size:13px;color:#666;margin-bottom:6px;font-weight:500;}
+            .kpi-indicator-value {font-size:26px;font-weight:800;line-height:1.2;}
+            .kpi-indicator-detail {display:flex;gap:12px;margin-top:6px;flex-wrap:wrap;}
+            .kpi-indicator-detail span {font-size:11px;color:#888;}
+            .kpi-indicator-week {line-height:1.4;}
+            @media(max-width:768px) {
+                .kpi-indicator-card {flex-direction:column;align-items:center;text-align:center;}
+                .kpi-indicator-detail {justify-content:center;}
+            }
+        </style>
+<!-- ENDPLACEHOLDER -->
+        
         <!-- PLACEHOLDER: time_progress_district -->
 <div class="time-progress">
                     <h3>⏰ T-1 时间进度 (07月03日)</h3>
@@ -333,340 +392,10 @@
 </div>
 <!-- ENDPLACEHOLDER -->
     </div>
-
-    <!-- 合浦商进度 -->
-    <div id="result-hepu" class="sub-tab-content">
-        <!-- PLACEHOLDER: time_progress_hepu -->
-<div class="time-progress">
-                    <h3>⏰ T-1 时间进度 (07月03日)</h3>
-                    <div class="progress-bar-container">
-                        <div class="progress-label"><span>时间进度</span><span>9.68% (3/31)</span></div>
-                        <div class="progress-bar"><div class="progress-fill" style="width:9.68%">9.68%</div></div>
-                    </div>
-                </div>
-<!-- ENDPLACEHOLDER -->
-        <!-- PLACEHOLDER: hepu_result_kpi -->
-<div class="kpi-section">
-                    <h2 class="section-title">📈 结果指标 - 合浦商汇总</h2>
-                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:30px;">
-                        <div>
-                            <h3 style="color:#FF9800;margin-bottom:15px;">🍚 拼好饭</h3>
-                            <div class="kpi-card-pinfan">
-                                <h3>订单完成率</h3><div class="kpi-value">9.51%</div>
-                                <div class="kpi-comparison">
-                                    <div class="comparison-item"><div class="comparison-label">时间GAP</div><div class="comparison-value gap-negative">-0.17%</div></div>
-                                    <div class="comparison-item"><div class="comparison-label">vs 广西区域</div><div class="comparison-value gap-negative">-0.01%</div></div>
-                                </div>
-                            </div>
-                        </div>
-                        <div>
-                            <h3 style="color:#9C27B0;margin-bottom:15px;">🛒 神抢手</h3>
-                            <div class="kpi-card-shenqiang">
-                                <h3>实付GMV完成率</h3><div class="kpi-value">N/A</div>
-                                <div class="kpi-comparison">
-                                    <div class="comparison-item"><div class="comparison-label">时间GAP</div><div class="comparison-value ">-</div></div>
-                                    <div class="comparison-item"><div class="comparison-label">vs 广西区域</div><div class="comparison-value ">-</div></div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-<!-- ENDPLACEHOLDER -->
-        <!-- PLACEHOLDER: hepu_cities -->
-<div class="kpi-section">
-                    <h2 class="section-title">🏪 合浦商 - 城市进度</h2>
-                    <div class="city-special-note">综合评分根据G列考核板块：P=只考核拼好饭 | P+S=考核拼好饭+神抢手</div>
-                    
-                    <table class="ranking-table">
-                        <thead><tr><th>排名</th><th>城市</th><th>考核板块</th><th>🍚拼好饭完成率</th><th>时间GAP</th><th>🛒神抢手GMV完成率</th><th>时间GAP</th><th>综合得分</th><th>风险状态</th></tr></thead>
-                        <tbody>
-                            <tr class="rank-guangxi"><td>-</td><td>广西区域</td><td>-</td><td>9.52%</td><td class="gap-negative">-0.16%</td><td>—</td><td class="">-</td><td>4.76%</td><td>-</td></tr>
-<tr><td>1</td><td>合浦县</td><td><span class="assessment-badge assessment-ps">P+S</span></td><td>9.55%</td><td class="gap-negative">-0.13%</td><td>-</td><td class="">-</td><td>9.55%</td><td class="risk-normal">正常</td></tr>
-<tr><td>2</td><td>大新县</td><td><span class="assessment-badge assessment-p">P</span></td><td>9.23%</td><td class="gap-negative">-0.45%</td><td>-</td><td class="">-</td><td>9.23%</td><td class="risk-normal">正常</td></tr>
-                        </tbody>
-                    </table>
-                </div>
-<!-- ENDPLACEHOLDER -->
-        <!-- PLACEHOLDER: hepu_analysis -->
-<div class="analysis-box">
-<h3>📊 数据分析 - 合浦商进度</h3>
-<p><strong>📈 整体评价：</strong>合浦商3城平均得分0.09%，高于区域均值，表现良好。</p>
-</div>
-<!-- ENDPLACEHOLDER -->
-    </div>
 </div>
 
-<!-- ==================== Tab 2: 过程指标 ==================== -->
+<!-- ==================== Tab 2: 玉林商进度 ==================== -->
 <div id="tab2" class="tab-content">
-    <!-- 子Tab导航 -->
-    <div class="sub-tabs">
-        <button class="sub-tab-btn active" onclick="showSubTab('process-district', this, 'process')">📊 分区进度</button>
-        <button class="sub-tab-btn" onclick="showSubTab('process-yulin', this, 'process')">🏪 玉林商进度</button>
-        <button class="sub-tab-btn" onclick="showSubTab('process-hepu', this, 'process')">🏪 合浦商进度</button>
-    </div>
-
-    <!-- 分区进度 -->
-    <div id="process-process-district" class="sub-tab-content active">
-        <!-- PLACEHOLDER: process_district_kpi -->
-<div class="kpi-section">
-                <h2 class="section-title">📊 过程指标 - 欧阳云龙分区 vs 广西区域</h2>
-                
-                <div class="process-kpi-grid">
-                    <div class="process-kpi-card">
-                        <h3>重点货盘上线率</h3>
-                        <div class="process-kpi-value" style="color:#1a73e8;">53.90%</div>
-                        <div class="process-kpi-compare">
-                            广西区域: <span style="color:#666;">51.70%</span><br>
-                            差距: <span style="color:#52c41a;">+2.20%</span>
-                        </div>
-                    </div>
-                    
-                    <div class="process-kpi-card">
-                        <h3>同品LOSE率</h3>
-                        <div class="process-kpi-value" style="color:#52c41a;">N/A</div>
-                        <div class="process-kpi-compare">
-                            广西区域: <span style="color:#666;">N/A</span><br>
-                            差距: <span style="color:#52c41a;">-</span>
-                        </div>
-                    </div>
-                    
-                    <div class="process-kpi-card">
-                        <h3>爆品LOSE率</h3>
-                        <div class="process-kpi-value" style="color:#52c41a;">N/A</div>
-                        <div class="process-kpi-compare">
-                            广西区域: <span style="color:#666;">N/A</span><br>
-                            差距: <span style="color:#52c41a;">-</span>
-                        </div>
-                    </div>
-                    
-                    <div class="process-kpi-card">
-                        <h3>食安合格率</h3>
-                        <div class="process-kpi-value" style="color:#52c41a;">N/A</div>
-                        <div class="process-kpi-compare">
-                            广西区域: <span style="color:#666;">N/A</span><br>
-                            差距: <span style="color:#52c41a;">-</span>
-                        </div>
-                    </div>
-                    
-                    <div class="process-kpi-card">
-                        <h3>到店自提完成率</h3>
-                        <div class="process-kpi-value" style="color:#52c41a;">N/A</div>
-                        <div class="process-kpi-compare">
-                            广西区域: <span style="color:#666;">N/A</span><br>
-                            差距: <span style="color:#52c41a;">-</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-<!-- ENDPLACEHOLDER -->
-        <!-- PLACEHOLDER: process_manager_ranking -->
-<div class="kpi-section">
-                    <h2 class="section-title">📊 分区经理过程指标排名（共11位）</h2>
-                    <p style="color:#666;margin-bottom:15px;">广西区域作为对比基准，不参与排名。综合得分=重点货盘×50+同品LOSE×5+爆品LOSE×5+食安合格×20+到店自提×20（100分制）</p>
-                    
-                    <table class="process-ranking-table">
-                        <thead><tr><th>排名</th><th>分区经理</th><th>重点货盘上线率</th><th>同品LOSE率</th><th>爆品LOSE率</th><th>食安合格率</th><th>到店自提完成率</th><th>综合评分</th><th>风险状态</th></tr></thead>
-                        <tbody>
-                            <tr class="rank-guangxi"><td>-</td><td>广西区域</td><td>51.70%</td><td>N/A</td><td>N/A</td><td>N/A</td><td>N/A</td><td>25.85</td><td>-</td></tr>
-<tr class=""><td>1</td><td>广西分区（熊江）</td><td>54.50%</td><td>N/A</td><td>N/A</td><td>N/A</td><td>N/A</td><td>27.25</td><td class="risk-normal">正常</td></tr>
-<tr class="rank-ouyang"><td>2</td><td>广西分区（欧阳云龙）</td><td>53.90%</td><td>N/A</td><td>N/A</td><td>N/A</td><td>N/A</td><td>26.95</td><td class="risk-normal">正常</td></tr>
-<tr class=""><td>3</td><td>广西分区（李凯）</td><td>53.00%</td><td>N/A</td><td>N/A</td><td>N/A</td><td>N/A</td><td>26.50</td><td class="risk-normal">正常</td></tr>
-<tr class=""><td>4</td><td>广西分区（黄荣权）</td><td>52.80%</td><td>N/A</td><td>N/A</td><td>N/A</td><td>N/A</td><td>26.40</td><td class="risk-normal">正常</td></tr>
-<tr class=""><td>5</td><td>广西分区（肖龙）</td><td>52.60%</td><td>N/A</td><td>N/A</td><td>N/A</td><td>N/A</td><td>26.30</td><td class="risk-normal">正常</td></tr>
-<tr class=""><td>6</td><td>广西分区（邢善琼）</td><td>51.00%</td><td>N/A</td><td>N/A</td><td>N/A</td><td>N/A</td><td>25.50</td><td class="risk-low">低风险</td></tr>
-<tr class=""><td>7</td><td>广西分区（孟瑞清）</td><td>50.70%</td><td>N/A</td><td>N/A</td><td>N/A</td><td>N/A</td><td>25.35</td><td class="risk-low">低风险</td></tr>
-<tr class=""><td>8</td><td>广西分区（孙嘉良）</td><td>50.70%</td><td>N/A</td><td>N/A</td><td>N/A</td><td>N/A</td><td>25.35</td><td class="risk-low">低风险</td></tr>
-<tr class=""><td>9</td><td>广西分区（卢相任）</td><td>49.70%</td><td>N/A</td><td>N/A</td><td>N/A</td><td>N/A</td><td>24.85</td><td class="risk-low">低风险</td></tr>
-<tr class=""><td>10</td><td>广西分区（黄公正）</td><td>49.20%</td><td>N/A</td><td>N/A</td><td>N/A</td><td>N/A</td><td>24.60</td><td class="risk-low">低风险</td></tr>
-<tr class=""><td>11</td><td>广西分区（李志军）</td><td>48.90%</td><td>N/A</td><td>N/A</td><td>N/A</td><td>N/A</td><td>24.45</td><td class="risk-low">低风险</td></tr>
-                        </tbody>
-                    </table>
-                </div>
-<!-- ENDPLACEHOLDER -->
-        <!-- PLACEHOLDER: process_district_analysis -->
-<div class="analysis-box">
-<h3>📊 数据分析 - 过程指标分区进度</h3>
-<p><strong>🟡 需关注：</strong>广西分区（邢善琼）(25.50分)、广西分区（卢相任）(24.85分)、广西分区（孟瑞清）(25.35分)，综合得分低于区域均值但未超过2分。</p>
-<p><strong>📅 昨日对比异常：</strong></p>
-<ul>
-<li>今日各分区过程指标较昨日整体平稳，无明显异常波动。</li>
-</ul>
-</div>
-<!-- ENDPLACEHOLDER -->
-    </div>
-
-    <!-- 玉林商进度 -->
-    <div id="process-process-yulin" class="sub-tab-content">
-        <!-- PLACEHOLDER: process_yulin -->
-<div class="kpi-section">
-                    <h2 class="section-title">📊 过程指标 - 玉林商（8城汇总） vs 广西区域</h2>
-                    
-                    <div class="process-kpi-grid">
-                        <div class="process-kpi-card">
-                            <h3>重点货盘上线率</h3>
-                            <div class="process-kpi-value" style="color:#1a73e8;">53.94%</div>
-                            <div class="process-kpi-compare">
-                                广西区域: <span style="color:#666;">51.70%</span><br>
-                                差距: <span style="color:#52c41a;">+2.24%</span>
-                            </div>
-                        </div>
-                        
-                        <div class="process-kpi-card">
-                            <h3>同品LOSE率</h3>
-                            <div class="process-kpi-value" style="color:#52c41a;">N/A</div>
-                            <div class="process-kpi-compare">
-                                广西区域: <span style="color:#666;">N/A</span><br>
-                                差距: <span style="color:#52c41a;">-</span>
-                            </div>
-                        </div>
-                        
-                        <div class="process-kpi-card">
-                            <h3>爆品LOSE率</h3>
-                            <div class="process-kpi-value" style="color:#52c41a;">N/A</div>
-                            <div class="process-kpi-compare">
-                                广西区域: <span style="color:#666;">N/A</span><br>
-                                差距: <span style="color:#52c41a;">-</span>
-                            </div>
-                        </div>
-                        
-                        <div class="process-kpi-card">
-                            <h3>食安合格率</h3>
-                            <div class="process-kpi-value" style="color:#52c41a;">N/A</div>
-                            <div class="process-kpi-compare">
-                                广西区域: <span style="color:#666;">N/A</span><br>
-                                差距: <span style="color:#52c41a;">-</span>
-                            </div>
-                        </div>
-                        
-                        <div class="process-kpi-card">
-                            <h3>到店自提完成率</h3>
-                            <div class="process-kpi-value" style="color:#52c41a;">N/A</div>
-                            <div class="process-kpi-compare">
-                                广西区域: <span style="color:#666;">N/A</span><br>
-                                差距: <span style="color:#52c41a;">-</span>
-                            </div>
-                        </div>
-                    </div>
-                </div><div class="kpi-section">
-                    <h2 class="section-title">📊 玉林商城市过程指标排名</h2>
-                    <p style="color:#666;margin-bottom:15px;">综合得分=重点货盘×50+同品LOSE×5+爆品LOSE×5+食安合格×20+到店自提×20（100分制）。广西区域作为对比基准，不参与排名。</p>
-                    
-                    <table class="process-ranking-table">
-                        <thead><tr><th>排名</th><th>城市</th><th>考核业务</th><th>重点货盘上线率</th><th>同品LOSE率</th><th>爆品LOSE率</th><th>食安合格率</th><th>到店自提完成率</th><th>综合评分</th><th>风险状态</th></tr></thead>
-                        <tbody>
-                            <tr class="rank-guangxi"><td>-</td><td>广西区域</td><td>-</td><td>51.70%</td><td>N/A</td><td>N/A</td><td>N/A</td><td>N/A</td><td>25.85</td><td>-</td></tr>
-<tr><td>1</td><td>博白县</td><td><span class="assessment-badge assessment-ps">P+S</span></td><td>59.30%</td><td>N/A</td><td>N/A</td><td>N/A</td><td>N/A</td><td>29.65</td><td class="risk-normal">正常</td></tr>
-<tr><td>2</td><td>钦州市</td><td><span class="assessment-badge assessment-ps">P+S</span></td><td>57.50%</td><td>N/A</td><td>N/A</td><td>N/A</td><td>N/A</td><td>28.75</td><td class="risk-normal">正常</td></tr>
-<tr><td>3</td><td>玉林市</td><td><span class="assessment-badge assessment-ps">P+S</span></td><td>54.00%</td><td>N/A</td><td>N/A</td><td>N/A</td><td>N/A</td><td>27.00</td><td class="risk-normal">正常</td></tr>
-<tr><td>4</td><td>岑溪</td><td><span class="assessment-badge assessment-ps">P+S</span></td><td>53.50%</td><td>N/A</td><td>N/A</td><td>N/A</td><td>N/A</td><td>26.75</td><td class="risk-normal">正常</td></tr>
-<tr><td>5</td><td>梧州市</td><td><span class="assessment-badge assessment-ps">P+S</span></td><td>50.30%</td><td>N/A</td><td>N/A</td><td>N/A</td><td>N/A</td><td>25.15</td><td class="risk-low">低风险</td></tr>
-<tr><td>6</td><td>田东县</td><td><span class="assessment-badge assessment-ps">P+S</span></td><td>50.00%</td><td>N/A</td><td>N/A</td><td>N/A</td><td>N/A</td><td>25.00</td><td class="risk-low">低风险</td></tr>
-<tr><td>7</td><td>东兰县</td><td><span class="assessment-badge assessment-p">P</span></td><td>9.10%</td><td>N/A</td><td>N/A</td><td>N/A</td><td>N/A</td><td>4.55</td><td class="risk-high">高风险</td></tr>
-<tr><td>8</td><td>凤山县</td><td><span class="assessment-badge assessment-p">P</span></td><td>0.00%</td><td>N/A</td><td>N/A</td><td>N/A</td><td>N/A</td><td>0.00</td><td class="risk-high">高风险</td></tr>
-                        </tbody>
-                    </table>
-                </div>
-<!-- ENDPLACEHOLDER -->
-        <!-- PLACEHOLDER: process_yulin_analysis -->
-<div class="analysis-box">
-<h3>📊 数据分析 - 过程指标玉林商</h3>
-<p><strong>🔴 问题城市（需重点关注）：</strong></p>
-<ul>
-<li><strong>东兰县</strong>：重点货盘上线率9.10%（低于区域42.6pp）</li>
-<li><strong>凤山县</strong>：重点货盘上线率0.00%（低于区域51.7pp）</li>
-</ul>
-<p><strong>📅 昨日对比异常：</strong></p>
-<ul>
-<li>玉林商各城市过程指标较昨日整体平稳，无明显异常。</li>
-</ul>
-</div>
-<!-- ENDPLACEHOLDER -->
-    </div>
-
-    <!-- 合浦商进度 -->
-    <div id="process-process-hepu" class="sub-tab-content">
-        <!-- PLACEHOLDER: process_hepu -->
-<div class="kpi-section">
-                    <h2 class="section-title">🏪 过程指标 - 合浦商（3城汇总） vs 广西区域</h2>
-                    
-                    <div class="process-kpi-grid">
-                        <div class="process-kpi-card">
-                            <h3>重点货盘上线率</h3>
-                            <div class="process-kpi-value" style="color:#1a73e8;">51.00%</div>
-                            <div class="process-kpi-compare">
-                                广西区域: <span style="color:#666;">51.70%</span><br>
-                                差距: <span style="color:#f5222d;">-0.70%</span>
-                            </div>
-                        </div>
-                        
-                        <div class="process-kpi-card">
-                            <h3>同品LOSE率</h3>
-                            <div class="process-kpi-value" style="color:#52c41a;">N/A</div>
-                            <div class="process-kpi-compare">
-                                广西区域: <span style="color:#666;">N/A</span><br>
-                                差距: <span style="color:#52c41a;">-</span>
-                            </div>
-                        </div>
-                        
-                        <div class="process-kpi-card">
-                            <h3>爆品LOSE率</h3>
-                            <div class="process-kpi-value" style="color:#52c41a;">N/A</div>
-                            <div class="process-kpi-compare">
-                                广西区域: <span style="color:#666;">N/A</span><br>
-                                差距: <span style="color:#52c41a;">-</span>
-                            </div>
-                        </div>
-                        
-                        <div class="process-kpi-card">
-                            <h3>食安合格率</h3>
-                            <div class="process-kpi-value" style="color:#52c41a;">N/A</div>
-                            <div class="process-kpi-compare">
-                                广西区域: <span style="color:#666;">N/A</span><br>
-                                差距: <span style="color:#52c41a;">-</span>
-                            </div>
-                        </div>
-                        
-                        <div class="process-kpi-card">
-                            <h3>到店自提完成率</h3>
-                            <div class="process-kpi-value" style="color:#52c41a;">N/A</div>
-                            <div class="process-kpi-compare">
-                                广西区域: <span style="color:#666;">N/A</span><br>
-                                差距: <span style="color:#52c41a;">-</span>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <h2 class="section-title" style="margin-top:30px;">📊 合浦商城市过程指标排名</h2>
-                    
-                    <table class="process-ranking-table">
-                        <thead><tr><th>排名</th><th>城市</th><th>考核业务</th><th>重点货盘上线率</th><th>同品LOSE率</th><th>爆品LOSE率</th><th>食安合格率</th><th>到店自提完成率</th><th>综合评分</th><th>风险状态</th></tr></thead>
-                        <tbody>
-                            <tr class="rank-guangxi"><td>-</td><td>广西区域</td><td>-</td><td>51.70%</td><td>N/A</td><td>N/A</td><td>N/A</td><td>N/A</td><td>25.85</td><td>-</td></tr>
-<tr><td>1</td><td>大新县</td><td><span class="assessment-badge assessment-p">P</span></td><td>62.50%</td><td>N/A</td><td>N/A</td><td>N/A</td><td>N/A</td><td>31.25</td><td class="risk-normal">正常</td></tr>
-<tr><td>2</td><td>合浦县</td><td><span class="assessment-badge assessment-ps">P+S</span></td><td>50.60%</td><td>N/A</td><td>N/A</td><td>N/A</td><td>N/A</td><td>25.30</td><td class="risk-low">低风险</td></tr>
-<tr><td>3</td><td>金秀瑶族自治县</td><td><span class="assessment-badge assessment-p">P</span></td><td>0.00%</td><td>N/A</td><td>N/A</td><td>N/A</td><td>N/A</td><td>0.00</td><td class="risk-high">高风险</td></tr>
-                        </tbody>
-                    </table>
-                </div>
-<!-- ENDPLACEHOLDER -->
-        <!-- PLACEHOLDER: process_hepu_analysis -->
-<div class="analysis-box">
-<h3>📊 数据分析 - 过程指标合浦商</h3>
-<p><strong>🔴 需关注城市：</strong></p>
-<ul>
-<li><strong>金秀瑶族自治县</strong>：重点货盘上线率0.00%（低于区域51.7pp）</li>
-</ul>
-<p><strong>📅 昨日对比：</strong></p>
-<ul>
-<li>合浦商各城市指标较昨日变化不大，整体平稳。</li>
-</ul>
-</div>
-<!-- ENDPLACEHOLDER -->
-    </div>
-</div>
-
-<!-- ==================== Tab 3: 玉林商KPI进度 ==================== -->
-<div id="tab3" class="tab-content">
     <div style="padding:16px 20px 12px; font-size:18px; font-weight:700; color:#667eea; display:flex; align-items:center; gap:10px;">
         <span>⚠️</span><span>风险预估</span>
     </div>
@@ -676,14 +405,14 @@
                     <div class="summary-card card-warn">
                         <div class="card-icon">⚠️</div>
                         <div class="card-label">警告城市数</div>
-                        <div class="card-value">1</div>
-                        <div class="card-sub">预估总得分&lt;90（共1城）</div>
+                        <div class="card-value">7</div>
+                        <div class="card-sub">预估总得分&lt;90（共7城）</div>
                     </div>
                     <div class="summary-card card-fine">
                         <div class="card-icon">💰</div>
                         <div class="card-label">罚款城市数</div>
-                        <div class="card-value">0</div>
-                        <div class="card-sub">不能减免时货盘得分&lt;18（共0城）</div>
+                        <div class="card-value">6</div>
+                        <div class="card-sub">不能减免时货盘得分&lt;18（共6城）</div>
                     </div>
                     <div class="summary-card card-good">
                         <div class="card-icon">✅</div>
@@ -701,12 +430,16 @@
                 <div class="kpi-analysis">
                     <h3>📋 结果分析</h3>
                 <div class="risk-item risk-item-warn">
-                    <span class="risk-tag risk-tag-warn">⚠️ 警告风险（1城）</span>
-                    <span class="risk-text"><strong>凤山县：</strong>预估总得分83.16 < 90，触发警告。</span>
+                    <span class="risk-tag risk-tag-warn">⚠️ 警告风险（7城）</span>
+                    <span class="risk-text"><strong>玉林市、钦州市、梧州市、博白县、岑溪、田东县、凤山县：</strong>预估总得分45.30、40.05、45.26、40.13、37.28、30.96、83.16 < 90，触发警告。</span>
+                </div>
+                                <div class="risk-item risk-item-fine">
+                    <span class="risk-tag risk-tag-fine">💰 罚款风险（6城）</span>
+                    <span class="risk-text"><strong>玉林市、钦州市、梧州市、博白县、岑溪、田东县：</strong>不能减免，货盘得分<18，触发罚款。</span>
                 </div>
                                 <div class="risk-item risk-item-normal">
-                    <span class="risk-tag risk-tag-normal">✅ 表现优秀（7城）</span>
-                    <span class="risk-text"><strong>玉林市、钦州市、梧州市、博白县、岑溪、田东县、东兰县：</strong>预估总得分≥90，不触发警告；符合减免条件或货盘≥18分，不触发罚款。</span>
+                    <span class="risk-tag risk-tag-normal">✅ 表现优秀（1城）</span>
+                    <span class="risk-text"><strong>东兰县：</strong>预估总得分≥90，不触发警告；符合减免条件或货盘≥18分，不触发罚款。</span>
                 </div>
                 </div>
             </div>
@@ -787,13 +520,13 @@
     <td>-</td>
     <td><span class="score-low">0.00</span></td>
     <td class="col-est-sq" style="background:#e8f5e9;font-style:italic;font-weight:700;color:#c62828;">-</td>
-    <td>2660.00%</td>
-    <td>1.2</td>
-    <td><span class="score-high">638.40</span></td>
-    <td><span class="score-high">642.78</span></td>
-    <td class="col-est-total" style="background:#e8f5e9;font-style:italic;font-weight:700;color:#2e7d32;"><span class="score-high">120.00</span></td>
-    <td><span class="risk-tag risk-tag-normal">✅ 无风险</span></td>
-    <td class="col-note"></td>
+    <td>26.60%</td>
+    <td>0</td>
+    <td><span class="score-low">0.00</span></td>
+    <td><span class="score-low">4.38</span></td>
+    <td class="col-est-total" style="background:#e8f5e9;font-style:italic;font-weight:700;color:#c62828;"><span class="score-high">45.30</span></td>
+    <td><span class="risk-tag risk-tag-both">💰⚠️ 罚款+警告</span></td>
+    <td class="col-note"><span style="color:#c62828;font-size:11px;font-weight:bold;">货盘≥75%可免罚款</span></td>
 </tr>
 <tr>
     <td class="col-info"><strong>2</strong></td>
@@ -808,13 +541,13 @@
     <td>-</td>
     <td><span class="score-low">0.00</span></td>
     <td class="col-est-sq" style="background:#e8f5e9;font-style:italic;font-weight:700;color:#c62828;">-</td>
-    <td>2200.00%</td>
-    <td>1.2</td>
-    <td><span class="score-high">528.00</span></td>
-    <td><span class="score-high">531.88</span></td>
-    <td class="col-est-total" style="background:#e8f5e9;font-style:italic;font-weight:700;color:#2e7d32;"><span class="score-high">120.00</span></td>
-    <td><span class="risk-tag risk-tag-normal">✅ 无风险</span></td>
-    <td class="col-note"></td>
+    <td>22.00%</td>
+    <td>0</td>
+    <td><span class="score-low">0.00</span></td>
+    <td><span class="score-low">3.88</span></td>
+    <td class="col-est-total" style="background:#e8f5e9;font-style:italic;font-weight:700;color:#c62828;"><span class="score-high">40.05</span></td>
+    <td><span class="risk-tag risk-tag-both">💰⚠️ 罚款+警告</span></td>
+    <td class="col-note"><span style="color:#c62828;font-size:11px;font-weight:bold;">货盘≥75%可免罚款</span></td>
 </tr>
 <tr>
     <td class="col-info"><strong>3</strong></td>
@@ -829,13 +562,13 @@
     <td>-</td>
     <td><span class="score-low">0.00</span></td>
     <td class="col-est-sq" style="background:#e8f5e9;font-style:italic;font-weight:700;color:#c62828;">-</td>
-    <td>2390.00%</td>
-    <td>1.2</td>
-    <td><span class="score-high">573.60</span></td>
-    <td><span class="score-high">577.98</span></td>
-    <td class="col-est-total" style="background:#e8f5e9;font-style:italic;font-weight:700;color:#2e7d32;"><span class="score-high">120.00</span></td>
-    <td><span class="risk-tag risk-tag-normal">✅ 无风险</span></td>
-    <td class="col-note"></td>
+    <td>23.90%</td>
+    <td>0</td>
+    <td><span class="score-low">0.00</span></td>
+    <td><span class="score-low">4.38</span></td>
+    <td class="col-est-total" style="background:#e8f5e9;font-style:italic;font-weight:700;color:#c62828;"><span class="score-high">45.26</span></td>
+    <td><span class="risk-tag risk-tag-both">💰⚠️ 罚款+警告</span></td>
+    <td class="col-note"><span style="color:#c62828;font-size:11px;font-weight:bold;">货盘≥75%可免罚款</span></td>
 </tr>
 <tr>
     <td class="col-info"><strong>4</strong></td>
@@ -850,13 +583,13 @@
     <td>-</td>
     <td><span class="score-low">0.00</span></td>
     <td class="col-est-sq" style="background:#e8f5e9;font-style:italic;font-weight:700;color:#c62828;">-</td>
-    <td>3320.00%</td>
-    <td>1.2</td>
-    <td><span class="score-high">796.80</span></td>
-    <td><span class="score-high">800.68</span></td>
-    <td class="col-est-total" style="background:#e8f5e9;font-style:italic;font-weight:700;color:#2e7d32;"><span class="score-high">120.00</span></td>
-    <td><span class="risk-tag risk-tag-normal">✅ 无风险</span></td>
-    <td class="col-note"></td>
+    <td>33.20%</td>
+    <td>0</td>
+    <td><span class="score-low">0.00</span></td>
+    <td><span class="score-low">3.88</span></td>
+    <td class="col-est-total" style="background:#e8f5e9;font-style:italic;font-weight:700;color:#c62828;"><span class="score-high">40.13</span></td>
+    <td><span class="risk-tag risk-tag-both">💰⚠️ 罚款+警告</span></td>
+    <td class="col-note"><span style="color:#c62828;font-size:11px;font-weight:bold;">货盘≥75%可免罚款</span></td>
 </tr>
 <tr>
     <td class="col-info"><strong>5</strong></td>
@@ -871,13 +604,13 @@
     <td>-</td>
     <td><span class="score-low">0.00</span></td>
     <td class="col-est-sq" style="background:#e8f5e9;font-style:italic;font-weight:700;color:#c62828;">-</td>
-    <td>2870.00%</td>
-    <td>1.2</td>
-    <td><span class="score-high">688.80</span></td>
-    <td><span class="score-high">692.41</span></td>
-    <td class="col-est-total" style="background:#e8f5e9;font-style:italic;font-weight:700;color:#2e7d32;"><span class="score-high">120.00</span></td>
-    <td><span class="risk-tag risk-tag-normal">✅ 无风险</span></td>
-    <td class="col-note"></td>
+    <td>28.70%</td>
+    <td>0</td>
+    <td><span class="score-low">0.00</span></td>
+    <td><span class="score-low">3.61</span></td>
+    <td class="col-est-total" style="background:#e8f5e9;font-style:italic;font-weight:700;color:#c62828;"><span class="score-mid">37.28</span></td>
+    <td><span class="risk-tag risk-tag-both">💰⚠️ 罚款+警告</span></td>
+    <td class="col-note"><span style="color:#c62828;font-size:11px;font-weight:bold;">货盘≥75%可免罚款</span></td>
 </tr>
 <tr>
     <td class="col-info"><strong>6</strong></td>
@@ -892,13 +625,13 @@
     <td>-</td>
     <td><span class="score-low">0.00</span></td>
     <td class="col-est-sq" style="background:#e8f5e9;font-style:italic;font-weight:700;color:#c62828;">-</td>
-    <td>2400.00%</td>
-    <td>1.2</td>
-    <td><span class="score-high">576.00</span></td>
-    <td><span class="score-high">579.00</span></td>
-    <td class="col-est-total" style="background:#e8f5e9;font-style:italic;font-weight:700;color:#2e7d32;"><span class="score-high">120.00</span></td>
-    <td><span class="risk-tag risk-tag-normal">✅ 无风险</span></td>
-    <td class="col-note"></td>
+    <td>24.00%</td>
+    <td>0</td>
+    <td><span class="score-low">0.00</span></td>
+    <td><span class="score-low">3.00</span></td>
+    <td class="col-est-total" style="background:#e8f5e9;font-style:italic;font-weight:700;color:#c62828;"><span class="score-mid">30.96</span></td>
+    <td><span class="risk-tag risk-tag-both">💰⚠️ 罚款+警告</span></td>
+    <td class="col-note"><span style="color:#c62828;font-size:11px;font-weight:bold;">货盘≥75%可免罚款</span></td>
 </tr>
 <tr>
     <td class="col-info"><strong>7</strong></td>
@@ -952,6 +685,202 @@
                     📌 <b>货盘系数</b>：&lt;60%→0；60-70%→0.8；≥70%→1.2
                 </div>
             </div>
+<!-- ENDPLACEHOLDER -->
+    </div>
+</div>
+
+<!-- ==================== Tab 3: 其他指标 ==================== -->
+<div id="tab3" class="tab-content">
+    <!-- 子Tab导航 -->
+    <div class="sub-tabs">
+        <button class="sub-tab-btn active" onclick="showSubTab('process-district', this, 'process')">📊 分区进度</button>
+        <button class="sub-tab-btn" onclick="showSubTab('process-yulin', this, 'process')">🏪 玉林商进度</button>
+    </div>
+
+    <!-- 分区进度 -->
+    <div id="process-process-district" class="sub-tab-content active">
+        <!-- PLACEHOLDER: process_district_kpi -->
+<div class="kpi-section">
+                <h2 class="section-title">📊 过程指标 - 欧阳云龙分区 vs 广西区域</h2>
+                
+                <div class="process-kpi-grid">
+                    <div class="process-kpi-card">
+                        <h3>重点货盘上线率</h3>
+                        <div class="process-kpi-value" style="color:#1a73e8;">55.50%</div>
+                        <div class="process-kpi-compare">
+                            广西区域: <span style="color:#666;">51.90%</span><br>
+                            差距: <span style="color:#52c41a;">+3.60%</span>
+                        </div>
+                    </div>
+                    
+                    <div class="process-kpi-card">
+                        <h3>同品LOSE率</h3>
+                        <div class="process-kpi-value" style="color:#52c41a;">N/A</div>
+                        <div class="process-kpi-compare">
+                            广西区域: <span style="color:#666;">N/A</span><br>
+                            差距: <span style="color:#52c41a;">-</span>
+                        </div>
+                    </div>
+                    
+                    <div class="process-kpi-card">
+                        <h3>爆品LOSE率</h3>
+                        <div class="process-kpi-value" style="color:#52c41a;">N/A</div>
+                        <div class="process-kpi-compare">
+                            广西区域: <span style="color:#666;">N/A</span><br>
+                            差距: <span style="color:#52c41a;">-</span>
+                        </div>
+                    </div>
+                    
+                    <div class="process-kpi-card">
+                        <h3>食安合格率</h3>
+                        <div class="process-kpi-value" style="color:#f5222d;">78.20%</div>
+                        <div class="process-kpi-compare">
+                            广西区域: <span style="color:#666;">80.50%</span><br>
+                            差距: <span style="color:#f5222d;">-2.30%</span>
+                        </div>
+                    </div>
+                    
+                    <div class="process-kpi-card">
+                        <h3>到店自提完成率</h3>
+                        <div class="process-kpi-value" style="color:#52c41a;">147.20%</div>
+                        <div class="process-kpi-compare">
+                            广西区域: <span style="color:#666;">93.90%</span><br>
+                            差距: <span style="color:#52c41a;">+53.30%</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+<!-- ENDPLACEHOLDER -->
+        <!-- PLACEHOLDER: process_manager_ranking -->
+<div class="kpi-section">
+                    <h2 class="section-title">📊 分区经理过程指标排名（共11位）</h2>
+                    <p style="color:#666;margin-bottom:15px;">广西区域作为对比基准，不参与排名。综合得分=重点货盘×50+同品LOSE×5+爆品LOSE×5+食安合格×20+到店自提×20（100分制）</p>
+                    
+                    <table class="process-ranking-table">
+                        <thead><tr><th>排名</th><th>分区经理</th><th>重点货盘上线率</th><th>同品LOSE率</th><th>爆品LOSE率</th><th>食安合格率</th><th>到店自提完成率</th><th>综合评分</th><th>风险状态</th></tr></thead>
+                        <tbody>
+                            <tr class="rank-guangxi"><td>-</td><td>广西区域</td><td>51.90%</td><td>N/A</td><td>N/A</td><td>80.50%</td><td>93.90%</td><td>60.83</td><td>-</td></tr>
+<tr class=""><td>1</td><td>广西分区（李志军）</td><td>47.70%</td><td>N/A</td><td>N/A</td><td>82.90%</td><td>163.00%</td><td>73.03</td><td class="risk-normal">正常</td></tr>
+<tr class="rank-ouyang"><td>2</td><td>广西分区（欧阳云龙）</td><td>55.50%</td><td>N/A</td><td>N/A</td><td>78.20%</td><td>147.20%</td><td>72.83</td><td class="risk-normal">正常</td></tr>
+<tr class=""><td>3</td><td>广西分区（孟瑞清）</td><td>51.70%</td><td>N/A</td><td>N/A</td><td>81.40%</td><td>133.60%</td><td>68.85</td><td class="risk-normal">正常</td></tr>
+<tr class=""><td>4</td><td>广西分区（黄荣权）</td><td>53.40%</td><td>N/A</td><td>N/A</td><td>81.10%</td><td>75.50%</td><td>58.02</td><td class="risk-high">高风险</td></tr>
+<tr class=""><td>5</td><td>广西分区（孙嘉良）</td><td>52.90%</td><td>N/A</td><td>N/A</td><td>77.80%</td><td>80.00%</td><td>58.01</td><td class="risk-high">高风险</td></tr>
+<tr class=""><td>6</td><td>广西分区（卢相任）</td><td>52.80%</td><td>N/A</td><td>N/A</td><td>78.70%</td><td>79.10%</td><td>57.96</td><td class="risk-high">高风险</td></tr>
+<tr class=""><td>7</td><td>广西分区（熊江）</td><td>47.90%</td><td>N/A</td><td>N/A</td><td>87.90%</td><td>79.40%</td><td>57.41</td><td class="risk-high">高风险</td></tr>
+<tr class=""><td>8</td><td>广西分区（邢善琼）</td><td>48.20%</td><td>N/A</td><td>N/A</td><td>84.90%</td><td>78.90%</td><td>56.86</td><td class="risk-high">高风险</td></tr>
+<tr class=""><td>9</td><td>广西分区（肖龙）</td><td>52.10%</td><td>N/A</td><td>N/A</td><td>78.30%</td><td>75.50%</td><td>56.81</td><td class="risk-high">高风险</td></tr>
+<tr class=""><td>10</td><td>广西分区（黄公正）</td><td>49.00%</td><td>N/A</td><td>N/A</td><td>81.20%</td><td>79.70%</td><td>56.68</td><td class="risk-high">高风险</td></tr>
+<tr class=""><td>11</td><td>广西分区（李凯）</td><td>52.80%</td><td>N/A</td><td>N/A</td><td>75.00%</td><td>74.30%</td><td>56.26</td><td class="risk-high">高风险</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+<!-- ENDPLACEHOLDER -->
+        <!-- PLACEHOLDER: process_district_analysis -->
+<div class="analysis-box">
+<h3>📊 数据分析 - 过程指标分区进度</h3>
+<p><strong>🔴 高风险预警：</strong></p>
+<ul>
+<li><strong>广西分区（李凯）</strong>：综合得分56.26（低于区域4.57分）。食安合格率75.00%低于区域均值</li>
+<li><strong>广西分区（黄公正）</strong>：综合得分56.68（低于区域4.15分）。综合过程指标均低于区域均值</li>
+<li><strong>广西分区（肖龙）</strong>：综合得分56.81（低于区域4.02分）。综合过程指标均低于区域均值</li>
+</ul>
+<p><strong>📅 昨日对比异常：</strong></p>
+<ul>
+<li><strong>广西分区（熊江）</strong>：重点货盘上线率较昨日下降6.6pp ⚠️</li>
+<li><strong>广西分区（熊江）</strong>：综合得分提升30.16分，慢于区域增速(34.98分)</li>
+<li><strong>广西分区（邢善琼）</strong>：重点货盘上线率较昨日下降2.8pp</li>
+</ul>
+</div>
+<!-- ENDPLACEHOLDER -->
+    </div>
+
+    <!-- 玉林商进度 -->
+    <div id="process-process-yulin" class="sub-tab-content">
+        <!-- PLACEHOLDER: process_yulin -->
+<div class="kpi-section">
+                    <h2 class="section-title">📊 过程指标 - 玉林商（8城汇总） vs 广西区域</h2>
+                    
+                    <div class="process-kpi-grid">
+                        <div class="process-kpi-card">
+                            <h3>重点货盘上线率</h3>
+                            <div class="process-kpi-value" style="color:#1a73e8;">56.04%</div>
+                            <div class="process-kpi-compare">
+                                广西区域: <span style="color:#666;">51.90%</span><br>
+                                差距: <span style="color:#52c41a;">+4.14%</span>
+                            </div>
+                        </div>
+                        
+                        <div class="process-kpi-card">
+                            <h3>同品LOSE率</h3>
+                            <div class="process-kpi-value" style="color:#52c41a;">N/A</div>
+                            <div class="process-kpi-compare">
+                                广西区域: <span style="color:#666;">N/A</span><br>
+                                差距: <span style="color:#52c41a;">-</span>
+                            </div>
+                        </div>
+                        
+                        <div class="process-kpi-card">
+                            <h3>爆品LOSE率</h3>
+                            <div class="process-kpi-value" style="color:#52c41a;">N/A</div>
+                            <div class="process-kpi-compare">
+                                广西区域: <span style="color:#666;">N/A</span><br>
+                                差距: <span style="color:#52c41a;">-</span>
+                            </div>
+                        </div>
+                        
+                        <div class="process-kpi-card">
+                            <h3>食安合格率</h3>
+                            <div class="process-kpi-value" style="color:#f5222d;">78.90%</div>
+                            <div class="process-kpi-compare">
+                                广西区域: <span style="color:#666;">80.50%</span><br>
+                                差距: <span style="color:#f5222d;">-1.60%</span>
+                            </div>
+                        </div>
+                        
+                        <div class="process-kpi-card">
+                            <h3>到店自提完成率</h3>
+                            <div class="process-kpi-value" style="color:#52c41a;">231.26%</div>
+                            <div class="process-kpi-compare">
+                                广西区域: <span style="color:#666;">93.90%</span><br>
+                                差距: <span style="color:#52c41a;">+137.36%</span>
+                            </div>
+                        </div>
+                    </div>
+                </div><div class="kpi-section">
+                    <h2 class="section-title">📊 玉林商城市过程指标排名</h2>
+                    <p style="color:#666;margin-bottom:15px;">综合得分=重点货盘×50+同品LOSE×5+爆品LOSE×5+食安合格×20+到店自提×20（100分制）。广西区域作为对比基准，不参与排名。</p>
+                    
+                    <table class="process-ranking-table">
+                        <thead><tr><th>排名</th><th>城市</th><th>考核业务</th><th>重点货盘上线率</th><th>同品LOSE率</th><th>爆品LOSE率</th><th>食安合格率</th><th>到店自提完成率</th><th>综合评分</th><th>风险状态</th></tr></thead>
+                        <tbody>
+                            <tr class="rank-guangxi"><td>-</td><td>广西区域</td><td>-</td><td>51.90%</td><td>N/A</td><td>N/A</td><td>80.50%</td><td>93.90%</td><td>60.83</td><td>-</td></tr>
+<tr><td>1</td><td>博白县</td><td><span class="assessment-badge assessment-ps">P+S</span></td><td>67.80%</td><td>N/A</td><td>N/A</td><td>86.90%</td><td>81.20%</td><td>67.52</td><td class="risk-normal">正常</td></tr>
+<tr><td>2</td><td>玉林市</td><td><span class="assessment-badge assessment-ps">P+S</span></td><td>57.50%</td><td>N/A</td><td>N/A</td><td>81.00%</td><td>79.10%</td><td>60.77</td><td class="risk-low">低风险</td></tr>
+<tr><td>3</td><td>岑溪</td><td><span class="assessment-badge assessment-ps">P+S</span></td><td>54.10%</td><td>N/A</td><td>N/A</td><td>82.10%</td><td>76.50%</td><td>58.77</td><td class="risk-high">高风险</td></tr>
+<tr><td>4</td><td>梧州市</td><td><span class="assessment-badge assessment-ps">P+S</span></td><td>53.20%</td><td>N/A</td><td>N/A</td><td>77.80%</td><td>78.70%</td><td>57.90</td><td class="risk-high">高风险</td></tr>
+<tr><td>5</td><td>钦州市</td><td><span class="assessment-badge assessment-ps">P+S</span></td><td>56.50%</td><td>N/A</td><td>N/A</td><td>76.30%</td><td>71.90%</td><td>57.89</td><td class="risk-high">高风险</td></tr>
+<tr><td>6</td><td>田东县</td><td><span class="assessment-badge assessment-ps">P+S</span></td><td>50.80%</td><td>N/A</td><td>N/A</td><td>82.20%</td><td>78.90%</td><td>57.62</td><td class="risk-high">高风险</td></tr>
+<tr><td>7</td><td>东兰县</td><td><span class="assessment-badge assessment-p">P</span></td><td>9.10%</td><td>N/A</td><td>N/A</td><td>34.10%</td><td>8.10%</td><td>12.99</td><td class="risk-high">高风险</td></tr>
+<tr><td>8</td><td>凤山县</td><td><span class="assessment-badge assessment-p">P</span></td><td>0.00%</td><td>N/A</td><td>N/A</td><td>28.60%</td><td>15.60%</td><td>8.84</td><td class="risk-high">高风险</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+<!-- ENDPLACEHOLDER -->
+        <!-- PLACEHOLDER: process_yulin_analysis -->
+<div class="analysis-box">
+<h3>📊 数据分析 - 过程指标玉林商</h3>
+<p><strong>🔴 问题城市（需重点关注）：</strong></p>
+<ul>
+<li><strong>东兰县</strong>：重点货盘上线率9.10%（低于区域42.8pp）；食安合格率34.10%未达90%</li>
+<li><strong>凤山县</strong>：重点货盘上线率0.00%（低于区域51.9pp）；食安合格率28.60%未达90%</li>
+<li><strong>梧州市</strong>：食安合格率77.80%未达90%</li>
+<li><strong>钦州市</strong>：食安合格率76.30%未达90%</li>
+</ul>
+<p><strong>📅 昨日对比异常：</strong></p>
+<ul>
+<li><strong>钦州市</strong>：重点货盘上线率较昨日下降1.0pp</li>
+</ul>
+</div>
 <!-- ENDPLACEHOLDER -->
     </div>
 </div>
