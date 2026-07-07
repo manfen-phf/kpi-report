@@ -1,11 +1,12 @@
 # -*- coding: utf-8 -*-
-"""Deploy kpi-report files to GitHub Pages via Contents REST API.
+"""Deploy kpi-report files to GitHub Pages via Git Data REST API (single commit per run).
 
 设计要点：
-- 沙箱/任意环境都可运行（只依赖 api.github.com，不依赖 github.com:443 的 git 协议）。
-- Token 不写死在文件里：优先读环境变量 GITHUB_TOKEN/GH_TOKEN；否则调用本机
-  Git Credential Manager（`git credential fill`）自动获取，避免把密钥提交进仓库。
-- 已存在则 UPDATE（带 sha），不存在则 CREATE。
+- 每次运行只产生 1 个 commit（用 Git Data API 构建 tree + commit），历史干净。
+- 只依赖 api.github.com，不依赖 github.com:443 的 git 协议（沙箱可运行）。
+- Token 不写死：优先环境变量 GITHUB_TOKEN/GH_TOKEN，否则调用本机 Git Credential
+  Manager（git credential fill）自动获取，避免把密钥提交进仓库。
+- 并发安全：PATCH ref 若遇 non-fast-forward(422) 会自动重新拉取最新 tip 并重试。
 用法：
   GITHUB_TOKEN=xxx python _deploy_api.py      # 或本机已登录 GCM 直接 python _deploy_api.py
 """
@@ -38,6 +39,55 @@ REPO = "manfen-phf/kpi-report"
 BRANCH = "main"
 LOCAL = os.path.dirname(os.path.abspath(__file__))
 
+HEADERS = {
+    "Authorization": "Bearer %s" % TOKEN,
+    "Accept": "application/vnd.github+json",
+    "Content-Type": "application/json",
+    "User-Agent": "kpi-report-deploy",
+}
+
+def api(method, path, body=None, attempt=0):
+    url = "https://api.github.com/repos/%s/%s" % (REPO, urllib.parse.quote(path))
+    data = json.dumps(body).encode("utf-8") if body is not None else None
+    req = urllib.request.Request(url, data=data, headers=HEADERS, method=method)
+    try:
+        with urllib.request.urlopen(req, timeout=30) as r:
+            return r.status, json.loads(r.read().decode("utf-8"))
+    except urllib.error.HTTPError as e:
+        if e.code == 422 and attempt == 0 and method == "PATCH" and path.startswith("git/refs"):
+            # non-fast-forward：上层调用会重拉 tip 后重试
+            raise _Retry()
+        err = e.read().decode("utf-8", "ignore")
+        print("  HTTPError %s on %s %s: %s" % (e.code, method, path, err[:200]))
+        raise
+
+class _Retry(Exception):
+    pass
+
+def get_ref():
+    st, j = api("GET", "git/refs/heads/%s" % BRANCH)
+    return j["object"]["sha"]
+
+def create_blob(content_b64):
+    st, j = api("POST", "git/blobs", {"content": content_b64, "encoding": "base64"})
+    return j["sha"]
+
+def create_tree(base_tree, entries):
+    body = {"tree": entries}
+    if base_tree:
+        body["base_tree"] = base_tree
+    st, j = api("POST", "git/trees", body)
+    return j["sha"]
+
+def create_commit(message, tree_sha, parent_sha):
+    st, j = api("POST", "git/commits", {"message": message, "tree": tree_sha, "parents": [parent_sha]})
+    return j["sha"]
+
+def update_ref(new_sha, old_sha):
+    # 第一次尝试；若 non-fast-forward 由调用方重拉后重试
+    api("PATCH", "git/refs/heads/%s" % BRANCH, {"sha": new_sha, "force": False})
+
+# ---- 文件清单（自动包含最新每日存档） ----
 FILES = [
     "index.html",
     "latest.html",
@@ -49,76 +99,49 @@ FILES = [
 ]
 
 def latest_dated_report():
-    """返回本地最新的 商品运营分析报告-MMdd.html（按文件名日期排序），用于每日存档上线。"""
     import re as _re
     cand = [f for f in os.listdir(LOCAL) if _re.match(r"商品运营分析报告-\d{4}\.html$", f)]
     if not cand:
         return None
-    cand.sort()  # 文件名 MMdd 升序，最后一个最新
+    cand.sort()
     return cand[-1]
 
-API = "https://api.github.com/repos/%s/contents/%%s" % REPO
-HEADERS = {
-    "Authorization": "Bearer %s" % TOKEN,
-    "Accept": "application/vnd.github+json",
-    "Content-Type": "application/json",
-    "User-Agent": "kpi-report-deploy",
-}
-
-def api_get(path):
-    url = API % urllib.parse.quote(path)
-    req = urllib.request.Request(url, headers=HEADERS, method="GET")
-    try:
-        with urllib.request.urlopen(req, timeout=30) as r:
-            return json.loads(r.read().decode("utf-8"))
-    except urllib.error.HTTPError as e:
-        if e.code == 404:
-            return None
-        raise
-
-def api_put(repo_path, content_b64, sha, message, attempt=0):
-    url = API % urllib.parse.quote(repo_path)
-    body = {"message": message, "content": content_b64, "branch": BRANCH}
-    if sha:
-        body["sha"] = sha
-    data = json.dumps(body).encode("utf-8")
-    req = urllib.request.Request(url, data=data, headers=HEADERS, method="PUT")
-    try:
-        with urllib.request.urlopen(req, timeout=30) as r:
-            return r.status, json.loads(r.read().decode("utf-8"))
-    except urllib.error.HTTPError as e:
-        if e.code == 409 and attempt == 0:
-            # 并发/竞态：重新获取最新 sha 后重试一次
-            cur = api_get(repo_path)
-            new_sha = cur.get("sha") if cur and "sha" in cur else None
-            return api_put(repo_path, content_b64, new_sha, message, attempt=1)
-        raise
+dated = latest_dated_report()
+if dated and dated not in FILES:
+    FILES.append(dated)
 
 MSG = "更新商品运营分析报告(动态日维度生成器) - 一键部署"
 
-# 追加每日存档快照（如果存在）
-dated = latest_dated_report()
-if dated:
-    if dated not in FILES:
-        FILES.append(dated)
+def main():
+    # 收集本地文件内容
+    blobs = {}
+    for name in FILES:
+        p = os.path.join(LOCAL, name)
+        if not os.path.exists(p):
+            print("SKIP (missing local):", name)
+            continue
+        with open(p, "rb") as f:
+            blobs[name] = base64.b64encode(f.read()).decode("ascii")
 
-for name in FILES:
-    local_path = os.path.join(LOCAL, name)
-    if not os.path.exists(local_path):
-        print("SKIP (missing local):", name)
-        continue
-    with open(local_path, "rb") as f:
-        raw = f.read()
-    b64 = base64.b64encode(raw).decode("ascii")
-    existing = api_get(name)
-    sha = existing.get("sha") if existing and "sha" in existing else None
-    mode = "UPDATE" if sha else "CREATE"
-    try:
-        status, resp = api_put(name, b64, sha, MSG)
-        print("%-7s %-20s -> HTTP %s  (commit=%s)" % (mode, name, status, resp.get("commit", {}).get("sha", "?")[:10]))
-    except urllib.error.HTTPError as e:
-        err = e.read().decode("utf-8", "ignore")
-        print("%-7s %-20s -> ERROR %s: %s" % (mode, name, e.code, err[:300]))
-    except Exception as e:
-        print("%-7s %-20s -> EXC %s" % (mode, name, e))
-print("DONE.")
+    for attempt in range(3):
+        try:
+            tip = get_ref()
+            st, commit = api("GET", "git/commits/%s" % tip)
+            base_tree = commit["tree"]["sha"]
+            entries = []
+            for name, b64 in blobs.items():
+                sha = create_blob(b64)
+                entries.append({"path": name, "mode": "100644", "type": "blob", "sha": sha})
+            new_tree = create_tree(base_tree, entries)
+            new_commit = create_commit(MSG, new_tree, tip)
+            update_ref(new_commit, tip)
+            print("OK: 1 commit %s (files: %d)" % (new_commit[:10], len(blobs)))
+            return
+        except _Retry:
+            print("  ref 冲突，重拉最新 tip 重试 (%d)..." % (attempt + 1))
+            continue
+    print("ERROR: 多次重试仍失败，请稍后重试。")
+    sys.exit(1)
+
+if __name__ == "__main__":
+    main()
