@@ -48,6 +48,15 @@ FILES = [
     "_deploy_api.py",
 ]
 
+def latest_dated_report():
+    """返回本地最新的 商品运营分析报告-MMdd.html（按文件名日期排序），用于每日存档上线。"""
+    import re as _re
+    cand = [f for f in os.listdir(LOCAL) if _re.match(r"商品运营分析报告-\d{4}\.html$", f)]
+    if not cand:
+        return None
+    cand.sort()  # 文件名 MMdd 升序，最后一个最新
+    return cand[-1]
+
 API = "https://api.github.com/repos/%s/contents/%%s" % REPO
 HEADERS = {
     "Authorization": "Bearer %s" % TOKEN,
@@ -76,6 +85,12 @@ def api_put(repo_path, content_b64, sha, message):
         return r.status, json.loads(r.read().decode("utf-8"))
 
 MSG = "更新商品运营分析报告(动态日维度生成器) - 一键部署"
+
+# 追加每日存档快照（如果存在）
+dated = latest_dated_report()
+if dated:
+    if dated not in FILES:
+        FILES.append(dated)
 
 for name in FILES:
     local_path = os.path.join(LOCAL, name)
