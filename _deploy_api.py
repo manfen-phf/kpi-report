@@ -9,7 +9,7 @@
 用法：
   GITHUB_TOKEN=xxx python _deploy_api.py      # 或本机已登录 GCM 直接 python _deploy_api.py
 """
-import base64, json, os, subprocess, sys, urllib.request, urllib.error
+import base64, json, os, subprocess, sys, urllib.request, urllib.error, urllib.parse
 
 TOKEN = os.environ.get("GITHUB_TOKEN") or os.environ.get("GH_TOKEN")
 
@@ -66,7 +66,8 @@ HEADERS = {
 }
 
 def api_get(path):
-    req = urllib.request.Request(API % path, headers=HEADERS, method="GET")
+    url = API % urllib.parse.quote(path)
+    req = urllib.request.Request(url, headers=HEADERS, method="GET")
     try:
         with urllib.request.urlopen(req, timeout=30) as r:
             return json.loads(r.read().decode("utf-8"))
@@ -75,14 +76,23 @@ def api_get(path):
             return None
         raise
 
-def api_put(repo_path, content_b64, sha, message):
+def api_put(repo_path, content_b64, sha, message, attempt=0):
+    url = API % urllib.parse.quote(repo_path)
     body = {"message": message, "content": content_b64, "branch": BRANCH}
     if sha:
         body["sha"] = sha
     data = json.dumps(body).encode("utf-8")
-    req = urllib.request.Request(API % repo_path, data=data, headers=HEADERS, method="PUT")
-    with urllib.request.urlopen(req, timeout=30) as r:
-        return r.status, json.loads(r.read().decode("utf-8"))
+    req = urllib.request.Request(url, data=data, headers=HEADERS, method="PUT")
+    try:
+        with urllib.request.urlopen(req, timeout=30) as r:
+            return r.status, json.loads(r.read().decode("utf-8"))
+    except urllib.error.HTTPError as e:
+        if e.code == 409 and attempt == 0:
+            # 并发/竞态：重新获取最新 sha 后重试一次
+            cur = api_get(repo_path)
+            new_sha = cur.get("sha") if cur and "sha" in cur else None
+            return api_put(repo_path, content_b64, new_sha, message, attempt=1)
+        raise
 
 MSG = "更新商品运营分析报告(动态日维度生成器) - 一键部署"
 
