@@ -10,7 +10,8 @@
 ## 日常更新（一键）
 1. 把新一天的 Excel 放入上述对应目录（保持原命名规律）。
 2. 双击 **`update.bat`**（或在本目录运行 `python generate_report.py`）。
-3. 脚本会重新生成 `index.html`（最新）与 `商品运营分析报告-MMdd.html`（按日存档），并自动提交推送到 GitHub Pages。
+3. 脚本会重新生成 `index.html`（最新）与 `商品运营分析报告-MMdd.html`（按日存档），并通过 GitHub API 部署到 GitHub Pages（无需 git push）。
+   - 部署鉴权：自动读取本机 Git Credential Manager 中 github.com 的凭据；或设置环境变量 `GITHUB_TOKEN`。**密钥不会写入本仓库。**
 
 ## 计分规则
 - 综合得分 = 拼好饭 50% + 货盘 40% + 月周均覆盖率 10%（P 城市东兰/凤山 = 拼好饭 50% + 货盘 50%，不考核覆盖率）。
