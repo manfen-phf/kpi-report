@@ -14,6 +14,13 @@ import base64, json, os, subprocess, sys, urllib.request, urllib.error, urllib.p
 
 TOKEN = os.environ.get("GITHUB_TOKEN") or os.environ.get("GH_TOKEN")
 
+# 第三种方式：从同目录 .github_token 文件读取（一行一个 token）
+if not TOKEN:
+    _token_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".github_token")
+    if os.path.isfile(_token_file):
+        with open(_token_file, "r", encoding="utf-8") as _f:
+            TOKEN = _f.read().strip().splitlines()[0].strip()
+
 def get_token_from_gcm():
     try:
         out = subprocess.run(
@@ -100,7 +107,7 @@ FILES = [
 
 def latest_dated_report():
     import re as _re
-    cand = [f for f in os.listdir(LOCAL) if _re.match(r"商品运营分析报告-\d{4}\.html$", f)]
+    cand = [f for f in os.listdir(LOCAL) if _re.match(r"商品运营分析报告-\d{4}-\d{4}\.html$", f)]
     if not cand:
         return None
     cand.sort()
