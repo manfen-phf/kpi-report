@@ -104,9 +104,9 @@ td.col-est-phf, td.col-est-hp, td.col-est-cov, td.col-est-total { font-style:ita
         <div class="block-title"><span>⚠️</span><span>风险预估</span><span class="badge">结果指标 + 过程指标综合评估</span></div>
     </div>
     <div class="kpi-section"><div class="summary-cards"><div class="summary-card card-warn"><div class="card-icon">⚠️</div><div class="card-label">警告城市数</div><div class="card-value">8</div><div class="card-sub">目前总得分&lt;90（共8城）</div></div><div class="summary-card card-fine"><div class="card-icon">💰</div><div class="card-label">罚款城市数</div><div class="card-value">8</div><div class="card-sub">过程(货盘+覆盖)目前&lt;45分（共8城）</div></div><div class="summary-card card-good"><div class="card-icon">✅</div><div class="card-label">可减免城市</div><div class="card-value">0</div><div class="card-sub">拼好饭目前完成率≥105%（共0城）</div></div></div></div>
-    <div class="kpi-section"><div class="ui-analysis"><h3>📋 结果分析</h3><div class="risk-item risk-item-warn"><span class="risk-tag risk-tag-warn">⚠️ 警告风险（8城）</span><span class="risk-text"><strong>玉林市、梧州市、钦州市、博白县、田东县、岑溪、东兰县、凤山县：</strong>目前总得分 玉林市：12.05；梧州市：12.11；钦州市：11.93；博白县：11.75；田东县：11.08；岑溪：10.57；东兰县：4.74；凤山县：6.84 &lt; 90，触发警告。</span></div><div class="risk-item risk-item-fine"><span class="risk-tag risk-tag-fine">💰 罚款风险（8城）</span><span class="risk-text"><strong>玉林市、梧州市、钦州市、博白县、田东县、岑溪、东兰县、凤山县：</strong>不能减免，过程指标(货盘+覆盖)目前&lt;45分，触发罚款。</span></div></div></div>
+    <div class="kpi-section"><div class="ui-analysis"><h3>📋 结果分析</h3><div class="risk-item risk-item-warn"><span class="risk-tag risk-tag-warn">⚠️ 警告风险（8城）</span><span class="risk-text"><strong>玉林市、钦州市、梧州市、博白县、岑溪、田东县、东兰县、凤山县：</strong>目前总得分 玉林市：40.85；钦州市：40.73；梧州市：40.91；博白县：40.55；岑溪：39.37；田东县：39.88；东兰县：33.54；凤山县：35.64 &lt; 90，触发警告。</span></div><div class="risk-item risk-item-fine"><span class="risk-tag risk-tag-fine">💰 罚款风险（8城）</span><span class="risk-text"><strong>玉林市、钦州市、梧州市、博白县、岑溪、田东县、东兰县、凤山县：</strong>不能减免，过程指标(货盘+覆盖)目前&lt;45分，触发罚款。</span></div></div></div>
     <div style="margin:14px 0;padding:10px 14px;background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;color:#075985;font-size:13px;line-height:1.6;">📊 <b>覆盖率口径</b>：月度覆盖率 = 日均覆盖率（已发生每日覆盖率的算术平均，只计算已发生日期，不做月末外推）；本月不按周考核。 8月考核窗口 8/10–8/31，10日前数据按日均口径计算作为参考。</div><div style="margin:14px 0;padding:10px 14px;background:#fff7ed;border:1px solid #fed7aa;border-radius:8px;color:#9a3412;font-size:13px;line-height:1.6;">⚠️ <b>覆盖率数据更新至 7 月</b>（8 月日维度尚未生成），当前覆盖率按 <b>7 月</b> 口径展示，暂不计入 8 月新系数规则。</div><div style="padding:16px 20px 12px;"><div style="font-size:16px;font-weight:700;color:#333;margin-bottom:16px;display:flex;align-items:center;gap:8px;"><span>🏙️</span><span>玉林商8城KPI进度总览</span>
-<span style="font-size:12px;font-weight:400;color:#999;margin-left:auto;">拼好饭50% + 货盘40%(P城50%) + 月度覆盖10%(P城不计) ｜ 所有"预估"列均按目前完成率展示（预估=维持现状）｜ 预计总得分=目前总得分</span></div>
+<span style="font-size:12px;font-weight:400;color:#999;margin-left:auto;">拼好饭50% + 货盘40% + 月度覆盖10%（东兰/凤山已纳入覆盖考核）｜ 拼好饭=近7天趋势预估月底；货盘预估=固定60%；月度覆盖=日均（已发生日期，不预估）</span></div>
 <div class="table-wrapper">
 <table class="kpi-table">
 <colgroup>
@@ -128,10 +128,10 @@ td.col-est-phf, td.col-est-hp, td.col-est-cov, td.col-est-total { font-style:ita
 </tr>
 <tr>
     <th class="th-sub-1">排</th><th class="th-sub-1">城市</th><th class="th-sub-1">等级</th><th class="th-sub-1">考核</th>
-    <th class="th-sub-2">完成率</th><th class="th-sub-2">GAP</th><th class="th-sub-2">目前得分</th><th class="th-sub-2 col-est-phf">目前完成率</th>
-    <th class="th-sub-4">攻克率</th><th class="th-sub-4">系数</th><th class="th-sub-4">目前得分</th><th class="th-sub-4 col-est-hp">目前完成率</th>
-    <th class="th-sub-5">覆盖率</th><th class="th-sub-5">系数</th><th class="th-sub-5">目前得分</th><th class="th-sub-5 col-est-cov">目前完成率</th>
-    <th class="th-sub-3">目前总得分</th><th class="th-sub-3 col-est-total">目前总得分</th>
+    <th class="th-sub-2">完成率</th><th class="th-sub-2">GAP</th><th class="th-sub-2">目前得分</th><th class="th-sub-2 col-est-phf">月底预估</th>
+    <th class="th-sub-4">攻克率</th><th class="th-sub-4">系数</th><th class="th-sub-4">目前得分</th><th class="th-sub-4 col-est-hp">预估完成率</th>
+    <th class="th-sub-5">覆盖率</th><th class="th-sub-5">系数</th><th class="th-sub-5">目前得分</th><th class="th-sub-5 col-est-cov">日均覆盖</th>
+    <th class="th-sub-3">目前总得分</th><th class="th-sub-3 col-est-total">预估总得分</th>
     <th class="th-sub-1">判定</th>
 </tr>
 </thead>
@@ -148,38 +148,17 @@ td.col-est-phf, td.col-est-hp, td.col-est-cov, td.col-est-total { font-style:ita
     <td>22.48%</td>
     <td>0</td>
     <td><span style="color:#f44336;font-weight:bold">0.00</span></td>
-    <td class="col-est-hp" style="background:#e8f5e9;font-style:italic;font-weight:700;color:#2e7d32;">22.48%</td>
+    <td class="col-est-hp" style="background:#e8f5e9;font-style:italic;font-weight:700;color:#2e7d32;">60.00%</td>
     <td>80.38%</td>
     <td>—</td>
     <td><span style="color:#f44336;font-weight:bold">8.04</span></td>
     <td class="col-est-cov" style="background:#e8f5e9;font-style:italic;font-weight:700;color:#2e7d32;">80.38%</td>
     <td><span style="color:#f44336;font-weight:bold">12.05</span></td>
-    <td class="col-est-total" style="background:#e8f5e9;font-style:italic;font-weight:700;color:#c62828;">12.05</td>
+    <td class="col-est-total" style="background:#e8f5e9;font-style:italic;font-weight:700;color:#c62828;">40.85</td>
     <td><span class="risk-tag risk-tag-both" style="font-size:11px;">💰罚款 ⚠️警告</span></td>
 </tr>
 <tr>
     <td class="col-info"><strong>2</strong></td>
-    <td class="col-info"><strong>梧州市</strong></td>
-    <td class="col-info">E2</td>
-    <td class="col-info"><span class="risk-tag" style="background:#e3f2fd;color:#1565c0;font-size:10px;border:1px solid #90caf9;">P+S</span></td>
-    <td>9.03%</td>
-    <td><span style="color:#4CAF50;font-weight:bold">+2.58%</span></td>
-    <td><span style="color:#f44336;font-weight:bold">4.51</span></td>
-    <td class="col-est-phf" style="background:#e8f5e9;font-style:italic;font-weight:700;color:#c62828;">9.03%</td>
-    <td>19.87%</td>
-    <td>0</td>
-    <td><span style="color:#f44336;font-weight:bold">0.00</span></td>
-    <td class="col-est-hp" style="background:#e8f5e9;font-style:italic;font-weight:700;color:#2e7d32;">19.87%</td>
-    <td>76.02%</td>
-    <td>—</td>
-    <td><span style="color:#f44336;font-weight:bold">7.60</span></td>
-    <td class="col-est-cov" style="background:#e8f5e9;font-style:italic;font-weight:700;color:#2e7d32;">76.02%</td>
-    <td><span style="color:#f44336;font-weight:bold">12.11</span></td>
-    <td class="col-est-total" style="background:#e8f5e9;font-style:italic;font-weight:700;color:#c62828;">12.11</td>
-    <td><span class="risk-tag risk-tag-both" style="font-size:11px;">💰罚款 ⚠️警告</span></td>
-</tr>
-<tr>
-    <td class="col-info"><strong>3</strong></td>
     <td class="col-info"><strong>钦州市</strong></td>
     <td class="col-info">E1</td>
     <td class="col-info"><span class="risk-tag" style="background:#e3f2fd;color:#1565c0;font-size:10px;border:1px solid #90caf9;">P+S</span></td>
@@ -190,13 +169,34 @@ td.col-est-phf, td.col-est-hp, td.col-est-cov, td.col-est-total { font-style:ita
     <td>21.67%</td>
     <td>0</td>
     <td><span style="color:#f44336;font-weight:bold">0.00</span></td>
-    <td class="col-est-hp" style="background:#e8f5e9;font-style:italic;font-weight:700;color:#2e7d32;">21.67%</td>
+    <td class="col-est-hp" style="background:#e8f5e9;font-style:italic;font-weight:700;color:#2e7d32;">60.00%</td>
     <td>78.11%</td>
     <td>—</td>
     <td><span style="color:#f44336;font-weight:bold">7.81</span></td>
     <td class="col-est-cov" style="background:#e8f5e9;font-style:italic;font-weight:700;color:#2e7d32;">78.11%</td>
     <td><span style="color:#f44336;font-weight:bold">11.93</span></td>
-    <td class="col-est-total" style="background:#e8f5e9;font-style:italic;font-weight:700;color:#c62828;">11.93</td>
+    <td class="col-est-total" style="background:#e8f5e9;font-style:italic;font-weight:700;color:#c62828;">40.73</td>
+    <td><span class="risk-tag risk-tag-both" style="font-size:11px;">💰罚款 ⚠️警告</span></td>
+</tr>
+<tr>
+    <td class="col-info"><strong>3</strong></td>
+    <td class="col-info"><strong>梧州市</strong></td>
+    <td class="col-info">E2</td>
+    <td class="col-info"><span class="risk-tag" style="background:#e3f2fd;color:#1565c0;font-size:10px;border:1px solid #90caf9;">P+S</span></td>
+    <td>9.03%</td>
+    <td><span style="color:#4CAF50;font-weight:bold">+2.58%</span></td>
+    <td><span style="color:#f44336;font-weight:bold">4.51</span></td>
+    <td class="col-est-phf" style="background:#e8f5e9;font-style:italic;font-weight:700;color:#c62828;">9.03%</td>
+    <td>19.87%</td>
+    <td>0</td>
+    <td><span style="color:#f44336;font-weight:bold">0.00</span></td>
+    <td class="col-est-hp" style="background:#e8f5e9;font-style:italic;font-weight:700;color:#2e7d32;">60.00%</td>
+    <td>76.02%</td>
+    <td>—</td>
+    <td><span style="color:#f44336;font-weight:bold">7.60</span></td>
+    <td class="col-est-cov" style="background:#e8f5e9;font-style:italic;font-weight:700;color:#2e7d32;">76.02%</td>
+    <td><span style="color:#f44336;font-weight:bold">12.11</span></td>
+    <td class="col-est-total" style="background:#e8f5e9;font-style:italic;font-weight:700;color:#c62828;">40.91</td>
     <td><span class="risk-tag risk-tag-both" style="font-size:11px;">💰罚款 ⚠️警告</span></td>
 </tr>
 <tr>
@@ -211,38 +211,17 @@ td.col-est-phf, td.col-est-hp, td.col-est-cov, td.col-est-total { font-style:ita
     <td>28.21%</td>
     <td>0</td>
     <td><span style="color:#f44336;font-weight:bold">0.00</span></td>
-    <td class="col-est-hp" style="background:#e8f5e9;font-style:italic;font-weight:700;color:#2e7d32;">28.21%</td>
+    <td class="col-est-hp" style="background:#e8f5e9;font-style:italic;font-weight:700;color:#2e7d32;">60.00%</td>
     <td>80.82%</td>
     <td>—</td>
     <td><span style="color:#f44336;font-weight:bold">8.08</span></td>
     <td class="col-est-cov" style="background:#e8f5e9;font-style:italic;font-weight:700;color:#2e7d32;">80.82%</td>
     <td><span style="color:#f44336;font-weight:bold">11.75</span></td>
-    <td class="col-est-total" style="background:#e8f5e9;font-style:italic;font-weight:700;color:#c62828;">11.75</td>
+    <td class="col-est-total" style="background:#e8f5e9;font-style:italic;font-weight:700;color:#c62828;">40.55</td>
     <td><span class="risk-tag risk-tag-both" style="font-size:11px;">💰罚款 ⚠️警告</span></td>
 </tr>
 <tr>
     <td class="col-info"><strong>5</strong></td>
-    <td class="col-info"><strong>田东县</strong></td>
-    <td class="col-info">F3</td>
-    <td class="col-info"><span class="risk-tag" style="background:#e3f2fd;color:#1565c0;font-size:10px;border:1px solid #90caf9;">P+S</span></td>
-    <td>7.76%</td>
-    <td><span style="color:#4CAF50;font-weight:bold">+1.31%</span></td>
-    <td><span style="color:#f44336;font-weight:bold">3.88</span></td>
-    <td class="col-est-phf" style="background:#e8f5e9;font-style:italic;font-weight:700;color:#c62828;">7.76%</td>
-    <td>19.37%</td>
-    <td>0</td>
-    <td><span style="color:#f44336;font-weight:bold">0.00</span></td>
-    <td class="col-est-hp" style="background:#e8f5e9;font-style:italic;font-weight:700;color:#2e7d32;">19.37%</td>
-    <td>71.97%</td>
-    <td>—</td>
-    <td><span style="color:#f44336;font-weight:bold">7.20</span></td>
-    <td class="col-est-cov" style="background:#e8f5e9;font-style:italic;font-weight:700;color:#2e7d32;">71.97%</td>
-    <td><span style="color:#f44336;font-weight:bold">11.08</span></td>
-    <td class="col-est-total" style="background:#e8f5e9;font-style:italic;font-weight:700;color:#c62828;">11.08</td>
-    <td><span class="risk-tag risk-tag-both" style="font-size:11px;">💰罚款 ⚠️警告</span></td>
-</tr>
-<tr>
-    <td class="col-info"><strong>6</strong></td>
     <td class="col-info"><strong>岑溪</strong></td>
     <td class="col-info">F2</td>
     <td class="col-info"><span class="risk-tag" style="background:#e3f2fd;color:#1565c0;font-size:10px;border:1px solid #90caf9;">P+S</span></td>
@@ -253,20 +232,41 @@ td.col-est-phf, td.col-est-hp, td.col-est-cov, td.col-est-total { font-style:ita
     <td>23.28%</td>
     <td>0</td>
     <td><span style="color:#f44336;font-weight:bold">0.00</span></td>
-    <td class="col-est-hp" style="background:#e8f5e9;font-style:italic;font-weight:700;color:#2e7d32;">23.28%</td>
+    <td class="col-est-hp" style="background:#e8f5e9;font-style:italic;font-weight:700;color:#2e7d32;">60.00%</td>
     <td>63.14%</td>
     <td>—</td>
     <td><span style="color:#f44336;font-weight:bold">6.31</span></td>
     <td class="col-est-cov" style="background:#e8f5e9;font-style:italic;font-weight:700;color:#2e7d32;">63.14%</td>
     <td><span style="color:#f44336;font-weight:bold">10.57</span></td>
-    <td class="col-est-total" style="background:#e8f5e9;font-style:italic;font-weight:700;color:#c62828;">10.57</td>
+    <td class="col-est-total" style="background:#e8f5e9;font-style:italic;font-weight:700;color:#c62828;">39.37</td>
+    <td><span class="risk-tag risk-tag-both" style="font-size:11px;">💰罚款 ⚠️警告</span></td>
+</tr>
+<tr>
+    <td class="col-info"><strong>6</strong></td>
+    <td class="col-info"><strong>田东县</strong></td>
+    <td class="col-info">F3</td>
+    <td class="col-info"><span class="risk-tag" style="background:#e3f2fd;color:#1565c0;font-size:10px;border:1px solid #90caf9;">P+S</span></td>
+    <td>7.76%</td>
+    <td><span style="color:#4CAF50;font-weight:bold">+1.31%</span></td>
+    <td><span style="color:#f44336;font-weight:bold">3.88</span></td>
+    <td class="col-est-phf" style="background:#e8f5e9;font-style:italic;font-weight:700;color:#c62828;">7.76%</td>
+    <td>19.37%</td>
+    <td>0</td>
+    <td><span style="color:#f44336;font-weight:bold">0.00</span></td>
+    <td class="col-est-hp" style="background:#e8f5e9;font-style:italic;font-weight:700;color:#2e7d32;">60.00%</td>
+    <td>71.97%</td>
+    <td>—</td>
+    <td><span style="color:#f44336;font-weight:bold">7.20</span></td>
+    <td class="col-est-cov" style="background:#e8f5e9;font-style:italic;font-weight:700;color:#2e7d32;">71.97%</td>
+    <td><span style="color:#f44336;font-weight:bold">11.08</span></td>
+    <td class="col-est-total" style="background:#e8f5e9;font-style:italic;font-weight:700;color:#c62828;">39.88</td>
     <td><span class="risk-tag risk-tag-both" style="font-size:11px;">💰罚款 ⚠️警告</span></td>
 </tr>
 <tr>
     <td class="col-info"><strong>7</strong></td>
     <td class="col-info"><strong>东兰县</strong></td>
     <td class="col-info">G3</td>
-    <td class="col-info"><span class="risk-tag" style="background:#e8f5e9;color:#2e7d32;font-size:10px;border:1px solid #a5d6a7;">P</span></td>
+    <td class="col-info"><span class="risk-tag" style="background:#e8f5e9;color:#1565c0;font-size:10px;border:1px solid #90caf9;">P+S</span></td>
     <td>9.48%</td>
     <td><span style="color:#4CAF50;font-weight:bold">+3.03%</span></td>
     <td><span style="color:#f44336;font-weight:bold">4.74</span></td>
@@ -274,20 +274,20 @@ td.col-est-phf, td.col-est-hp, td.col-est-cov, td.col-est-total { font-style:ita
     <td>1.17%</td>
     <td>0</td>
     <td><span style="color:#f44336;font-weight:bold">0.00</span></td>
-    <td class="col-est-hp" style="background:#e8f5e9;font-style:italic;font-weight:700;color:#2e7d32;">1.17%</td>
-    <td>—</td>
+    <td class="col-est-hp" style="background:#e8f5e9;font-style:italic;font-weight:700;color:#2e7d32;">60.00%</td>
+    <td>0.00%</td>
     <td>—</td>
     <td><span style="color:#f44336;font-weight:bold">0.00</span></td>
-    <td class="col-est-cov" style="background:#e8f5e9;font-style:italic;font-weight:700;color:#2e7d32;">—</td>
+    <td class="col-est-cov" style="background:#e8f5e9;font-style:italic;font-weight:700;color:#2e7d32;">0.00%</td>
     <td><span style="color:#f44336;font-weight:bold">4.74</span></td>
-    <td class="col-est-total" style="background:#e8f5e9;font-style:italic;font-weight:700;color:#c62828;">4.74</td>
+    <td class="col-est-total" style="background:#e8f5e9;font-style:italic;font-weight:700;color:#c62828;">33.54</td>
     <td><span class="risk-tag risk-tag-both" style="font-size:11px;">💰罚款 ⚠️警告</span></td>
 </tr>
 <tr>
     <td class="col-info"><strong>8</strong></td>
     <td class="col-info"><strong>凤山县</strong></td>
     <td class="col-info">G2</td>
-    <td class="col-info"><span class="risk-tag" style="background:#e8f5e9;color:#2e7d32;font-size:10px;border:1px solid #a5d6a7;">P</span></td>
+    <td class="col-info"><span class="risk-tag" style="background:#e8f5e9;color:#1565c0;font-size:10px;border:1px solid #90caf9;">P+S</span></td>
     <td>13.69%</td>
     <td><span style="color:#4CAF50;font-weight:bold">+7.24%</span></td>
     <td><span style="color:#f44336;font-weight:bold">6.84</span></td>
@@ -295,13 +295,13 @@ td.col-est-phf, td.col-est-hp, td.col-est-cov, td.col-est-total { font-style:ita
     <td>0.52%</td>
     <td>0</td>
     <td><span style="color:#f44336;font-weight:bold">0.00</span></td>
-    <td class="col-est-hp" style="background:#e8f5e9;font-style:italic;font-weight:700;color:#2e7d32;">0.52%</td>
-    <td>—</td>
+    <td class="col-est-hp" style="background:#e8f5e9;font-style:italic;font-weight:700;color:#2e7d32;">60.00%</td>
+    <td>0.00%</td>
     <td>—</td>
     <td><span style="color:#f44336;font-weight:bold">0.00</span></td>
-    <td class="col-est-cov" style="background:#e8f5e9;font-style:italic;font-weight:700;color:#2e7d32;">—</td>
+    <td class="col-est-cov" style="background:#e8f5e9;font-style:italic;font-weight:700;color:#2e7d32;">0.00%</td>
     <td><span style="color:#f44336;font-weight:bold">6.84</span></td>
-    <td class="col-est-total" style="background:#e8f5e9;font-style:italic;font-weight:700;color:#c62828;">6.84</td>
+    <td class="col-est-total" style="background:#e8f5e9;font-style:italic;font-weight:700;color:#c62828;">35.64</td>
     <td><span class="risk-tag risk-tag-both" style="font-size:11px;">💰罚款 ⚠️警告</span></td>
 </tr></tbody>
 </table>
