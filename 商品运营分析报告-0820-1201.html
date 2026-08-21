@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>商品运营分析报告</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family:'Microsoft YaHei',Arial,sans-serif; background:linear-gradient(135deg,#667eea,#764ba2); padding:20px; min-height:100vh; }
+.container { max-width:1600px; margin:0 auto; background:white; border-radius:15px; box-shadow:0 20px 60px rgba(0,0,0,.3); overflow:hidden; }
+.header { background:linear-gradient(135deg,#667eea,#764ba2); color:white; padding:30px; text-align:center; }
+.header h1 { font-size:32px; margin-bottom:10px; }
+.header .subtitle { font-size:16px; opacity:.9; }
+.main-tabs { display:flex; background:linear-gradient(135deg, rgba(102,126,234,0.08), rgba(118,75,162,0.08)); border-bottom:2px solid rgba(102,126,234,0.2); gap:8px; padding:8px 20px 0; }
+.main-tab-btn { flex:1; padding:16px 24px; border:none; background:rgba(255,255,255,0.6); font-size:16px; cursor:pointer; transition:all .3s ease; border-radius:12px 12px 0 0; color:#555; font-weight:500; margin-bottom:-2px; }
+.main-tab-btn:hover { background:rgba(255,255,255,0.9); color:#667eea; transform:translateY(-2px); }
+.main-tab-btn.active { background:linear-gradient(135deg,#667eea,#764ba2); color:white; font-weight:bold; box-shadow:0 4px 15px rgba(102,126,234,0.4); }
+.tab-content { display:none; }
+.tab-content.active { display:block; }
+.tab-content > div:first-child { border-top: none; }
+.time-progress { background:#f8f9fa; padding:16px 20px 24px; }
+.time-progress h3 { font-size:16px; font-weight:700; color:#333; margin-bottom:12px; display:flex; align-items:center; gap:8px; }
+.progress-bar-container { margin-top:10px; }
+.progress-label { display:flex; justify-content:space-between; margin-bottom:5px; font-size:14px; color:#666; }
+.progress-bar { width:100%; height:30px; background:#e0e0e0; border-radius:15px; overflow:hidden; }
+.progress-fill { height:100%; background:linear-gradient(90deg,#667eea,#764ba2); display:flex; align-items:center; justify-content:center; color:white; font-weight:bold; font-size:14px; }
+.kpi-district-card { transition:transform .3s ease, box-shadow .3s ease; cursor:default; }
+.kpi-district-card:hover { transform:translateY(-6px); box-shadow:0 12px 28px rgba(0,0,0,.15); }
+.rank-grid { border-collapse:collapse; table-layout:fixed; width:100%; min-width:880px; }
+.rank-grid th, .rank-grid td { border:1px solid #e6e6e6; }
+.rank-grid thead th { border-color:rgba(255,255,255,0.35); font-size:13px; white-space:normal; vertical-align:middle; line-height:1.3; }
+.rank-grid td { font-size:13.5px; }
+.rank-grid tbody tr:first-child td { border-color:#ffcc80; }
+.kpi-table { width:100%; border-collapse:separate; border-spacing:0; font-size:14px; min-width:1300px; background:#fff; }
+.kpi-table thead { position:sticky; top:0; z-index:20; }
+.kpi-table th { padding:14px 10px; text-align:center; font-size:13px; font-weight:600; color:#fff; border-right:1px solid rgba(255,255,255,.25); letter-spacing:.3px; }
+.kpi-table th:last-child { border-right:none; }
+.kpi-table td { padding:12px 10px; text-align:center; border-bottom:1px solid #f0f0f0; border-right:1px solid #f0f0f0; font-size:13px; color:#444; line-height:1.5; }
+.kpi-table td:last-child { border-right:none; }
+.kpi-table thead tr:last-child th { border-bottom:2.5px solid rgba(0,0,0,.2); }
+.kpi-table tbody tr { transition:background .2s; }
+.kpi-table tbody tr:hover { background:#f0f4ff; }
+.kpi-table tbody tr:nth-child(even) { background:#fafbff; }
+.kpi-table tbody tr:nth-child(even):hover { background:#f0f4ff; }
+.th-group-1, .th-sub-1 { background:#5c6bc0; color:#fff; }
+.th-group-2, .th-sub-2 { background:#7e57c2; color:#fff; }
+.th-group-3, .th-sub-3 { background:#42a5f5; color:#fff; }
+.th-group-4, .th-sub-4 { background:#ff7043; color:#fff; }
+.th-group-5, .th-sub-5 { background:#66bb6a; color:#fff; }
+td.col-est-phf, td.col-est-hp, td.col-est-cov, td.col-est-total { font-style:italic; font-weight:700; }
+.table-wrapper { margin:0 20px 20px; overflow-x:auto; border-radius:12px; box-shadow:0 4px 20px rgba(0,0,0,.08); background:white; }
+.summary-cards { display:grid; grid-template-columns:repeat(3, 1fr); gap:18px; margin:0 20px 20px; }
+.summary-card { border-radius:14px; padding:20px 18px; color:white; box-shadow:0 6px 20px rgba(0,0,0,.12); transition:all .3s ease; text-align:center; }
+.summary-card:hover { transform:translateY(-3px); box-shadow:0 10px 30px rgba(0,0,0,.2); }
+.card-warn { background:linear-gradient(135deg, #e57373, #ef5350); }
+.card-fine { background:linear-gradient(135deg, #ffb74d, #ffa726); }
+.card-good { background:linear-gradient(135deg, #81c784, #66bb6a); }
+.card-icon { font-size:28px; margin-bottom:10px; }
+.card-label { font-size:14px; opacity:.95; margin-bottom:10px; font-weight:500; }
+.card-value { font-size:44px; font-weight:bold; }
+.card-sub { font-size:13px; opacity:.9; margin-top:10px; }
+.risk-item { display:flex; align-items:flex-start; gap:12px; margin:12px 20px; padding:12px 15px; border-radius:8px; background:#fafafa; border-left:3px solid transparent; }
+.risk-item-warn { background:#ffebee; border-left-color:#f44336; }
+.risk-item-fine { background:#fff8e1; border-left-color:#ff9800; }
+.risk-item-normal { background:#e8f5e9; border-left-color:#4caf50; }
+.risk-tag { display:inline-block; padding:4px 12px; border-radius:4px; font-size:13px; font-weight:600; white-space:nowrap; }
+.risk-tag-warn { background:#ffebee; color:#f44336; border:1px solid #f44336; }
+.risk-tag-fine { background:#fff3e0; color:#ff9800; border:1px solid #ff9800; }
+.risk-tag-both { background:#ffebee; color:#c62828; border:1px solid #f44336; }
+.risk-tag-normal { background:#e8f5e9; color:#4caf50; }
+.risk-text { flex:1; color:#555; line-height:1.6; font-size:14px; }
+.note-box { margin:10px 20px 24px; padding:12px 16px; background:#f8f9fa; border-radius:8px; font-size:13px; color:#666; line-height:1.8; }
+.col-info { background:#f4f5fb; }
+.kpi-section { padding:0; }
+.ui-analysis { background:#f8f9fa; border-radius:8px; padding:15px 20px; margin:0 0 20px; }
+.ui-analysis h3 { font-size:16px; font-weight:700; color:#333; margin-bottom:12px; display:flex; align-items:center; gap:8px; }
+.block-title { font-size:16px; font-weight:700; color:#333; margin-bottom:16px; display:flex; align-items:center; gap:8px; }
+.block-title .badge { font-size:12px; font-weight:400; color:#999; margin-left:auto; }
+</style>
+</head>
+<body>
+<div class="container">
+<div class="header">
+    <h1>📊 商品运营分析报告</h1>
+    <div class="subtitle">数据周期：2026-08-20</div>
+</div>
+<div class="main-tabs">
+    <button class="main-tab-btn active" onclick="showMainTab('tab1', this)">📊 分区进度</button>
+    <button class="main-tab-btn" onclick="showMainTab('tab2', this)">🏪 玉林商进度</button>
+</div>
+<div id="tab1" class="tab-content active">
+    <div class="time-progress">
+  <h3><span>⏰</span><span>T-1 时间进度（08月20日）</span></h3>
+  <div class="progress-bar-container">
+    <div class="progress-label"><span>时间进度</span><span>64.52% (20/31)</span></div>
+    <div class="progress-bar"><div class="progress-fill" style="width:64.52%">64.52%</div></div>
+  </div>
+</div>
+    <div style="padding:16px 20px 4px;"><div style="font-size:16px;font-weight:700;color:#333;margin-bottom:16px;display:flex;align-items:center;gap:8px;"><span>📊</span><span>KPI指标（欧阳云龙分区 vs 广西区域）</span><span style="font-size:12px;font-weight:400;color:#999;margin-left:auto;">08月20日</span></div><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:20px;"><div class="kpi-district-card" style="background:#fff;border-radius:12px;padding:18px 20px;box-shadow:0 2px 12px rgba(0,0,0,0.08);border-left:4px solid #7c3aed;position:relative;"><div style="display:flex;align-items:center;margin-bottom:10px;"><span style="display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;border-radius:10px;background:#ede9fe;font-size:22px;margin-right:10px;">🍚</span><span style="font-size:14px;font-weight:700;color:#333;">拼好饭订单（50%）</span></div><div style="font-size:32px;font-weight:800;color:#7c3aed;margin-bottom:8px;">67.15%</div><div style="font-size:12px;color:#888;line-height:1.9;">广西区域: <b style="color:#333;">65.89%</b> &nbsp; 差距: <b style="color:#52c41a;">+1.26%</b></div></div><div class="kpi-district-card" style="background:#fff;border-radius:12px;padding:18px 20px;box-shadow:0 2px 12px rgba(0,0,0,0.08);border-left:4px solid #db2777;position:relative;"><div style="display:flex;align-items:center;margin-bottom:10px;"><span style="display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;border-radius:10px;background:#fce7f3;font-size:22px;margin-right:10px;">📦</span><span style="font-size:14px;font-weight:700;color:#333;">重点货盘（40%）</span></div><div style="font-size:32px;font-weight:800;color:#db2777;margin-bottom:8px;">53.69%</div><div style="font-size:12px;color:#888;line-height:1.9;">广西区域: <b style="color:#333;">53.73%</b> &nbsp; 差距: <b style="color:#f44336;">-0.04%</b></div></div><div class="kpi-district-card" style="background:#fff;border-radius:12px;padding:18px 20px;box-shadow:0 2px 12px rgba(0,0,0,0.08);border-left:4px solid #2563eb;position:relative;"><div style="display:flex;align-items:center;margin-bottom:10px;"><span style="display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;border-radius:10px;background:#dbeafe;font-size:22px;margin-right:10px;">🏪</span><span style="font-size:14px;font-weight:700;color:#333;">月度覆盖率（10%）</span></div><div style="font-size:32px;font-weight:800;color:#2563eb;margin-bottom:8px;">87.52%</div><div style="font-size:12px;color:#888;line-height:1.9;">广西区域: <b style="color:#333;">83.67%</b> &nbsp; 差距: <b style="color:#52c41a;">+3.85%</b></div></div></div></div>
+    <div style="padding:16px 20px 12px;"><div style="font-size:16px;font-weight:700;color:#333;margin-bottom:12px;display:flex;align-items:center;gap:8px;"><span>🏆</span><span>分区经理综合排名</span><span style="font-size:12px;font-weight:400;color:#999;margin-left:auto;">按综合得分排名 ｜ 颜色: ≥广西绿 / &lt;广西红</span></div><div style="overflow-x:auto;"><table class="rank-grid" style="width:100%;border-collapse:collapse;background:#fff;border-radius:8px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.06);"><colgroup><col style="width:9%"><col style="width:21%"><col style="width:14%"><col style="width:14%"><col style="width:14%"><col style="width:14%"><col style="width:14%"></colgroup><thead><tr style="background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;"><th style="padding:12px 8px;text-align:center;font-weight:600;white-space:normal;vertical-align:middle;">排名</th><th style="padding:12px 8px;text-align:center;font-weight:600;white-space:normal;vertical-align:middle;">分区经理</th><th style="padding:12px 8px;text-align:center;font-weight:600;white-space:normal;vertical-align:middle;">拼好饭完成率</th><th style="padding:12px 8px;text-align:center;font-weight:600;white-space:normal;vertical-align:middle;">重点货盘攻克率</th><th style="padding:12px 8px;text-align:center;font-weight:600;white-space:normal;vertical-align:middle;">月度覆盖率(日均)</th><th style="padding:12px 8px;text-align:center;font-weight:600;white-space:normal;vertical-align:middle;">综合得分</th><th style="padding:12px 8px;text-align:center;font-weight:600;white-space:normal;vertical-align:middle;">⚠️ 风险状态</th></tr></thead><tbody><tr style="background:#fff3e0;"><td style="padding:10px 10px;text-align:center;font-size:15px;font-weight:700;color:#e65100;">—</td><td style="padding:10px 10px;font-weight:700;color:#e65100;text-align:center;white-space:nowrap;">广西区域</td><td style="padding:10px 10px;text-align:center;font-weight:700;color:#e65100;">65.89%</td><td style="padding:10px 10px;text-align:center;font-weight:700;color:#e65100;">53.73%</td><td style="padding:10px 10px;text-align:center;font-weight:700;color:#e65100;">83.67%</td><td style="padding:10px 10px;text-align:center;font-weight:700;color:#e65100;">62.80</td><td style="padding:10px 10px;text-align:center;font-weight:700;color:#e65100;">基准</td></tr><tr style="background:#f8f9ff;"><td style="padding:10px 10px;text-align:center;font-size:15px;">🥇</td><td style="padding:10px 10px;font-weight:600;color:#333;text-align:center;white-space:nowrap;">广西分区（孟瑞清）</td><td style="padding:10px 10px;text-align:center;font-weight:700;color:#f5222d;">65.05%</td><td style="padding:10px 10px;text-align:center;font-weight:700;color:#52c41a;">60.01%</td><td style="padding:10px 10px;text-align:center;font-weight:700;color:#52c41a;">89.84%</td><td style="padding:10px 10px;text-align:center;font-weight:700;color:#52c41a;">65.51</td><td style="padding:10px 10px;text-align:center;font-weight:700;color:#52c41a;">正常</td></tr><tr style="background:#fff;"><td style="padding:10px 10px;text-align:center;font-size:15px;">🥈</td><td style="padding:10px 10px;font-weight:600;color:#333;text-align:center;white-space:nowrap;">广西分区（黄公正）</td><td style="padding:10px 10px;text-align:center;font-weight:700;color:#52c41a;">68.65%</td><td style="padding:10px 10px;text-align:center;font-weight:700;color:#f5222d;">53.57%</td><td style="padding:10px 10px;text-align:center;font-weight:700;color:#52c41a;">84.29%</td><td style="padding:10px 10px;text-align:center;font-weight:700;color:#52c41a;">64.18</td><td style="padding:10px 10px;text-align:center;font-weight:700;color:#52c41a;">正常</td></tr><tr style="background:#f8f9ff;"><td style="padding:10px 10px;text-align:center;font-size:15px;">🥉</td><td style="padding:10px 10px;font-weight:600;color:#333;text-align:center;white-space:nowrap;">广西分区（欧阳云龙）</td><td style="padding:10px 10px;text-align:center;font-weight:700;color:#52c41a;">67.15%</td><td style="padding:10px 10px;text-align:center;font-weight:700;color:#f5222d;">53.69%</td><td style="padding:10px 10px;text-align:center;font-weight:700;color:#52c41a;">87.52%</td><td style="padding:10px 10px;text-align:center;font-weight:700;color:#52c41a;">63.80</td><td style="padding:10px 10px;text-align:center;font-weight:700;color:#52c41a;">正常</td></tr><tr style="background:#fff;"><td style="padding:10px 10px;text-align:center;font-size:15px;">#4</td><td style="padding:10px 10px;font-weight:600;color:#333;text-align:center;white-space:nowrap;">广西分区（李志军）</td><td style="padding:10px 10px;text-align:center;font-weight:700;color:#f5222d;">63.51%</td><td style="padding:10px 10px;text-align:center;font-weight:700;color:#52c41a;">56.49%</td><td style="padding:10px 10px;text-align:center;font-weight:700;color:#52c41a;">86.01%</td><td style="padding:10px 10px;text-align:center;font-weight:700;color:#52c41a;">62.95</td><td style="padding:10px 10px;text-align:center;font-weight:700;color:#52c41a;">正常</td></tr><tr style="background:#f8f9ff;"><td style="padding:10px 10px;text-align:center;font-size:15px;">#5</td><td style="padding:10px 10px;font-weight:600;color:#333;text-align:center;white-space:nowrap;">广西分区（邢善琼）</td><td style="padding:10px 10px;text-align:center;font-weight:700;color:#52c41a;">65.96%</td><td style="padding:10px 10px;text-align:center;font-weight:700;color:#f5222d;">52.67%</td><td style="padding:10px 10px;text-align:center;font-weight:700;color:#52c41a;">83.82%</td><td style="padding:10px 10px;text-align:center;font-weight:700;color:#f5222d;">62.43</td><td style="padding:10px 10px;text-align:center;font-weight:700;color:#fa8c16;">低风险</td></tr><tr style="background:#fff;"><td style="padding:10px 10px;text-align:center;font-size:15px;">#6</td><td style="padding:10px 10px;font-weight:600;color:#333;text-align:center;white-space:nowrap;">广西分区（熊江）</td><td style="padding:10px 10px;text-align:center;font-weight:700;color:#f5222d;">64.63%</td><td style="padding:10px 10px;text-align:center;font-weight:700;color:#52c41a;">54.31%</td><td style="padding:10px 10px;text-align:center;font-weight:700;color:#f5222d;">80.74%</td><td style="padding:10px 10px;text-align:center;font-weight:700;color:#f5222d;">62.11</td><td style="padding:10px 10px;text-align:center;font-weight:700;color:#fa8c16;">低风险</td></tr><tr style="background:#f8f9ff;"><td style="padding:10px 10px;text-align:center;font-size:15px;">#7</td><td style="padding:10px 10px;font-weight:600;color:#333;text-align:center;white-space:nowrap;">广西分区（黄荣权）</td><td style="padding:10px 10px;text-align:center;font-weight:700;color:#f5222d;">64.29%</td><td style="padding:10px 10px;text-align:center;font-weight:700;color:#f5222d;">53.17%</td><td style="padding:10px 10px;text-align:center;font-weight:700;color:#f5222d;">82.59%</td><td style="padding:10px 10px;text-align:center;font-weight:700;color:#f5222d;">61.67</td><td style="padding:10px 10px;text-align:center;font-weight:700;color:#fa8c16;">低风险</td></tr><tr style="background:#fff;"><td style="padding:10px 10px;text-align:center;font-size:15px;">#8</td><td style="padding:10px 10px;font-weight:600;color:#333;text-align:center;white-space:nowrap;">广西分区（肖龙）</td><td style="padding:10px 10px;text-align:center;font-weight:700;color:#f5222d;">64.02%</td><td style="padding:10px 10px;text-align:center;font-weight:700;color:#f5222d;">52.23%</td><td style="padding:10px 10px;text-align:center;font-weight:700;color:#52c41a;">84.82%</td><td style="padding:10px 10px;text-align:center;font-weight:700;color:#f5222d;">61.38</td><td style="padding:10px 10px;text-align:center;font-weight:700;color:#fa8c16;">低风险</td></tr><tr style="background:#f8f9ff;"><td style="padding:10px 10px;text-align:center;font-size:15px;">#9</td><td style="padding:10px 10px;font-weight:600;color:#333;text-align:center;white-space:nowrap;">广西分区（卢相任）</td><td style="padding:10px 10px;text-align:center;font-weight:700;color:#52c41a;">67.17%</td><td style="padding:10px 10px;text-align:center;font-weight:700;color:#f5222d;">47.39%</td><td style="padding:10px 10px;text-align:center;font-weight:700;color:#f5222d;">72.76%</td><td style="padding:10px 10px;text-align:center;font-weight:700;color:#f5222d;">59.82</td><td style="padding:10px 10px;text-align:center;font-weight:700;color:#f5222d;">高风险</td></tr><tr style="background:#fff;"><td style="padding:10px 10px;text-align:center;font-size:15px;">#10</td><td style="padding:10px 10px;font-weight:600;color:#333;text-align:center;white-space:nowrap;">广西分区（孙嘉良）</td><td style="padding:10px 10px;text-align:center;font-weight:700;color:#f5222d;">64.13%</td><td style="padding:10px 10px;text-align:center;font-weight:700;color:#f5222d;">50.06%</td><td style="padding:10px 10px;text-align:center;font-weight:700;color:#f5222d;">74.84%</td><td style="padding:10px 10px;text-align:center;font-weight:700;color:#f5222d;">59.57</td><td style="padding:10px 10px;text-align:center;font-weight:700;color:#f5222d;">高风险</td></tr></tbody></table></div></div>
+</div>
+<div id="tab2" class="tab-content">
+    <div style="padding:16px 20px 0;">
+        <div class="block-title"><span>⚠️</span><span>风险预估</span><span class="badge">结果指标 + 过程指标综合评估</span></div>
+    </div>
+    <div class="kpi-section"><div class="summary-cards"><div class="summary-card card-warn"><div class="card-icon">⚠️</div><div class="card-label">警告城市数</div><div class="card-value">6</div><div class="card-sub">目前总得分&lt;90（共6城）</div></div><div class="summary-card card-fine"><div class="card-icon">💰</div><div class="card-label">罚款城市数</div><div class="card-value">6</div><div class="card-sub">过程(货盘+覆盖)目前&lt;45分（共6城）</div></div><div class="summary-card card-good"><div class="card-icon">✅</div><div class="card-label">可减免城市</div><div class="card-value">2</div><div class="card-sub">拼好饭目前完成率≥105%（共2城）</div></div></div></div>
+    <div class="kpi-section"><div class="ui-analysis"><h3>📋 结果分析</h3><div class="risk-item risk-item-warn"><span class="risk-tag risk-tag-warn">⚠️ 警告风险（6城）</span><span class="risk-text"><strong>玉林市、钦州市、梧州市、博白县、岑溪、田东县：</strong>目前总得分 玉林市：79.37；钦州市：63.98；梧州市：66.39；博白县：76.47；岑溪：60.56；田东县：60.05 &lt; 90，触发警告。</span></div><div class="risk-item risk-item-fine"><span class="risk-tag risk-tag-fine">💰 罚款风险（6城）</span><span class="risk-text"><strong>玉林市、钦州市、梧州市、博白县、岑溪、田东县：</strong>不能减免，过程指标(货盘+覆盖)目前&lt;45分，触发罚款。</span></div><div class="risk-item risk-item-normal"><span class="risk-tag risk-tag-normal">✅ 表现优秀（2城）</span><span class="risk-text"><strong>东兰县、凤山县：</strong>目前总得分≥90 或 可减免，不触发警告/罚款。</span></div></div></div>
+    <div style="margin:14px 0;padding:10px 14px;background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;color:#075985;font-size:13px;line-height:1.6;">📊 <b>覆盖率口径</b>：月度覆盖率 = 日均覆盖率（已发生每日覆盖率的算术平均，只计算已发生日期，不做月末外推）；本月不按周考核。分母口径：广西区域整体 = 全广西商家池(16294)，与分区经理排名同口径、可比（真实全区基线）；玉林商8城城市级 = 玉林商商家池（8月=3055 SKU），与过程指标分析报告对齐。 8月考核从每月10号开始：10号前（无考核日数据）月度覆盖率取「最新日达标值」；10号起按月度覆盖率按「10日至今日均」（已发生每日覆盖率的算术平均，窗口从10号起，不做月末外推）。</div><div style="padding:16px 20px 12px;"><div style="font-size:16px;font-weight:700;color:#333;margin-bottom:16px;display:flex;align-items:center;gap:8px;"><span>🏙️</span><span>玉林商8城KPI进度总览</span>
+<span style="font-size:12px;font-weight:400;color:#999;margin-left:auto;">拼好饭50% + 货盘40% + 月度覆盖10%（东兰/凤山已纳入覆盖考核）｜ 拼好饭=当前完成+近7天日均×剩余天数；货盘预估=当前货盘攻克率-5%(下限0)；月度覆盖预估=10日→31日22天日均(已发生取实际，未发生取最新日)</span></div>
+<div class="table-wrapper">
+<table class="kpi-table">
+<colgroup>
+    <col style="width:42px"><col style="width:62px"><col style="width:48px"><col style="width:52px">
+    <col style="width:68px"><col style="width:66px"><col style="width:64px"><col style="width:68px">
+    <col style="width:62px"><col style="width:46px"><col style="width:60px"><col style="width:66px">
+    <col style="width:62px"><col style="width:46px"><col style="width:60px"><col style="width:66px">
+    <col style="width:64px"><col style="width:66px">
+    <col style="width:110px">
+</colgroup>
+<thead>
+<tr>
+    <th class="th-group-1" colspan="4">📝 基础信息</th>
+    <th class="th-group-2" colspan="4">🍚 拼好饭（50%）</th>
+    <th class="th-group-4" colspan="4">📦 重点货盘</th>
+    <th class="th-group-5" colspan="4">🏪 月度覆盖率（10%）</th>
+    <th class="th-group-3" colspan="2">📊 合计</th>
+    <th class="th-group-1" colspan="1">⚠️ 风险状态</th>
+</tr>
+<tr>
+    <th class="th-sub-1">排</th><th class="th-sub-1">城市</th><th class="th-sub-1">等级</th><th class="th-sub-1">考核</th>
+    <th class="th-sub-2">完成率</th><th class="th-sub-2">GAP</th><th class="th-sub-2">目前得分</th><th class="th-sub-2 col-est-phf">月底预估</th>
+    <th class="th-sub-4">攻克率</th><th class="th-sub-4">系数</th><th class="th-sub-4">目前得分</th><th class="th-sub-4 col-est-hp">预估完成率</th>
+    <th class="th-sub-5">覆盖率</th><th class="th-sub-5">系数</th><th class="th-sub-5">目前得分</th><th class="th-sub-5 col-est-cov">预估覆盖率</th>
+    <th class="th-sub-3">目前总得分</th><th class="th-sub-3 col-est-total">预估总得分</th>
+    <th class="th-sub-1">判定</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+    <td class="col-info"><strong>1</strong></td>
+    <td class="col-info"><strong>玉林市</strong></td>
+    <td class="col-info">E1</td>
+    <td class="col-info"><span class="risk-tag" style="background:#e3f2fd;color:#1565c0;font-size:10px;border:1px solid #90caf9;">P+S</span></td>
+    <td>66.55%</td>
+    <td><span style="color:#4CAF50;font-weight:bold">+2.03%</span></td>
+    <td><span style="color:#ff9800;font-weight:bold">33.27</span></td>
+    <td class="col-est-phf" style="background:#e8f5e9;font-style:italic;font-weight:700;color:#2e7d32;">103.73%</td>
+    <td>57.79%</td>
+    <td>0.8</td>
+    <td><span style="color:#f44336;font-weight:bold">18.49</span></td>
+    <td class="col-est-hp" style="background:#e8f5e9;font-style:italic;font-weight:700;color:#2e7d32;">52.79%</td>
+    <td>88.74%</td>
+    <td>1.2</td>
+    <td><span style="color:#f44336;font-weight:bold">10.65</span></td>
+    <td class="col-est-cov" style="background:#e8f5e9;font-style:italic;font-weight:700;color:#2e7d32;">88.39%</td>
+    <td><span style="color:#4caf50;font-weight:bold">62.41</span></td>
+    <td class="col-est-total" style="background:#e8f5e9;font-style:italic;font-weight:700;color:#c62828;">79.37</td>
+    <td><span class="risk-tag risk-tag-both" style="font-size:11px;">💰罚款 ⚠️警告</span></td>
+</tr>
+<tr>
+    <td class="col-info"><strong>2</strong></td>
+    <td class="col-info"><strong>钦州市</strong></td>
+    <td class="col-info">E1</td>
+    <td class="col-info"><span class="risk-tag" style="background:#e3f2fd;color:#1565c0;font-size:10px;border:1px solid #90caf9;">P+S</span></td>
+    <td>68.13%</td>
+    <td><span style="color:#4CAF50;font-weight:bold">+3.61%</span></td>
+    <td><span style="color:#ff9800;font-weight:bold">34.06</span></td>
+    <td class="col-est-phf" style="background:#e8f5e9;font-style:italic;font-weight:700;color:#2e7d32;">106.26%</td>
+    <td>52.16%</td>
+    <td>0.8</td>
+    <td><span style="color:#f44336;font-weight:bold">16.69</span></td>
+    <td class="col-est-hp" style="background:#e8f5e9;font-style:italic;font-weight:700;color:#2e7d32;">47.16%</td>
+    <td>90.22%</td>
+    <td>1.2</td>
+    <td><span style="color:#f44336;font-weight:bold">10.83</span></td>
+    <td class="col-est-cov" style="background:#e8f5e9;font-style:italic;font-weight:700;color:#2e7d32;">90.45%</td>
+    <td><span style="color:#4caf50;font-weight:bold">61.58</span></td>
+    <td class="col-est-total" style="background:#e8f5e9;font-style:italic;font-weight:700;color:#c62828;">63.98</td>
+    <td><span class="risk-tag risk-tag-both" style="font-size:11px;">💰罚款 ⚠️警告 🛡️可减免</span></td>
+</tr>
+<tr>
+    <td class="col-info"><strong>3</strong></td>
+    <td class="col-info"><strong>梧州市</strong></td>
+    <td class="col-info">E2</td>
+    <td class="col-info"><span class="risk-tag" style="background:#e3f2fd;color:#1565c0;font-size:10px;border:1px solid #90caf9;">P+S</span></td>
+    <td>71.77%</td>
+    <td><span style="color:#4CAF50;font-weight:bold">+7.25%</span></td>
+    <td><span style="color:#ff9800;font-weight:bold">35.88</span></td>
+    <td class="col-est-phf" style="background:#e8f5e9;font-style:italic;font-weight:700;color:#2e7d32;">112.05%</td>
+    <td>54.87%</td>
+    <td>0.8</td>
+    <td><span style="color:#f44336;font-weight:bold">17.56</span></td>
+    <td class="col-est-hp" style="background:#e8f5e9;font-style:italic;font-weight:700;color:#2e7d32;">49.87%</td>
+    <td>86.21%</td>
+    <td>1.2</td>
+    <td><span style="color:#f44336;font-weight:bold">10.35</span></td>
+    <td class="col-est-cov" style="background:#e8f5e9;font-style:italic;font-weight:700;color:#2e7d32;">86.36%</td>
+    <td><span style="color:#4caf50;font-weight:bold">63.79</span></td>
+    <td class="col-est-total" style="background:#e8f5e9;font-style:italic;font-weight:700;color:#c62828;">66.39</td>
+    <td><span class="risk-tag risk-tag-both" style="font-size:11px;">💰罚款 ⚠️警告 🛡️可减免</span></td>
+</tr>
+<tr>
+    <td class="col-info"><strong>4</strong></td>
+    <td class="col-info"><strong>博白县</strong></td>
+    <td class="col-info">F2</td>
+    <td class="col-info"><span class="risk-tag" style="background:#e3f2fd;color:#1565c0;font-size:10px;border:1px solid #90caf9;">P+S</span></td>
+    <td>64.18%</td>
+    <td><span style="color:#f44336;font-weight:bold">-0.34%</span></td>
+    <td><span style="color:#ff9800;font-weight:bold">32.09</span></td>
+    <td class="col-est-phf" style="background:#e8f5e9;font-style:italic;font-weight:700;color:#2e7d32;">100.16%</td>
+    <td>56.24%</td>
+    <td>0.8</td>
+    <td><span style="color:#f44336;font-weight:bold">18.00</span></td>
+    <td class="col-est-hp" style="background:#e8f5e9;font-style:italic;font-weight:700;color:#2e7d32;">51.24%</td>
+    <td>83.87%</td>
+    <td>1.2</td>
+    <td><span style="color:#f44336;font-weight:bold">10.06</span></td>
+    <td class="col-est-cov" style="background:#e8f5e9;font-style:italic;font-weight:700;color:#2e7d32;">83.27%</td>
+    <td><span style="color:#4caf50;font-weight:bold">60.15</span></td>
+    <td class="col-est-total" style="background:#e8f5e9;font-style:italic;font-weight:700;color:#c62828;">76.47</td>
+    <td><span class="risk-tag risk-tag-both" style="font-size:11px;">💰罚款 ⚠️警告</span></td>
+</tr>
+<tr>
+    <td class="col-info"><strong>5</strong></td>
+    <td class="col-info"><strong>岑溪</strong></td>
+    <td class="col-info">F2</td>
+    <td class="col-info"><span class="risk-tag" style="background:#e3f2fd;color:#1565c0;font-size:10px;border:1px solid #90caf9;">P+S</span></td>
+    <td>64.12%</td>
+    <td><span style="color:#f44336;font-weight:bold">-0.40%</span></td>
+    <td><span style="color:#ff9800;font-weight:bold">32.06</span></td>
+    <td class="col-est-phf" style="background:#e8f5e9;font-style:italic;font-weight:700;color:#2e7d32;">100.10%</td>
+    <td>43.19%</td>
+    <td>0</td>
+    <td><span style="color:#f44336;font-weight:bold">0.00</span></td>
+    <td class="col-est-hp" style="background:#e8f5e9;font-style:italic;font-weight:700;color:#2e7d32;">38.19%</td>
+    <td>84.99%</td>
+    <td>1.2</td>
+    <td><span style="color:#f44336;font-weight:bold">10.20</span></td>
+    <td class="col-est-cov" style="background:#e8f5e9;font-style:italic;font-weight:700;color:#2e7d32;">87.56%</td>
+    <td><span style="color:#4caf50;font-weight:bold">42.26</span></td>
+    <td class="col-est-total" style="background:#e8f5e9;font-style:italic;font-weight:700;color:#c62828;">60.56</td>
+    <td><span class="risk-tag risk-tag-both" style="font-size:11px;">💰罚款 ⚠️警告</span></td>
+</tr>
+<tr>
+    <td class="col-info"><strong>6</strong></td>
+    <td class="col-info"><strong>田东县</strong></td>
+    <td class="col-info">F3</td>
+    <td class="col-info"><span class="risk-tag" style="background:#e3f2fd;color:#1565c0;font-size:10px;border:1px solid #90caf9;">P+S</span></td>
+    <td>63.31%</td>
+    <td><span style="color:#f44336;font-weight:bold">-1.21%</span></td>
+    <td><span style="color:#ff9800;font-weight:bold">31.66</span></td>
+    <td class="col-est-phf" style="background:#e8f5e9;font-style:italic;font-weight:700;color:#ff9800;">98.15%</td>
+    <td>46.47%</td>
+    <td>0</td>
+    <td><span style="color:#f44336;font-weight:bold">0.00</span></td>
+    <td class="col-est-hp" style="background:#e8f5e9;font-style:italic;font-weight:700;color:#2e7d32;">41.47%</td>
+    <td>90.65%</td>
+    <td>1.2</td>
+    <td><span style="color:#f44336;font-weight:bold">10.88</span></td>
+    <td class="col-est-cov" style="background:#e8f5e9;font-style:italic;font-weight:700;color:#2e7d32;">91.39%</td>
+    <td><span style="color:#4caf50;font-weight:bold">42.54</span></td>
+    <td class="col-est-total" style="background:#e8f5e9;font-style:italic;font-weight:700;color:#c62828;">60.05</td>
+    <td><span class="risk-tag risk-tag-both" style="font-size:11px;">💰罚款 ⚠️警告</span></td>
+</tr>
+<tr>
+    <td class="col-info"><strong>7</strong></td>
+    <td class="col-info"><strong>东兰县</strong></td>
+    <td class="col-info">G3</td>
+    <td class="col-info"><span class="risk-tag" style="background:#e8f5e9;color:#1565c0;font-size:10px;border:1px solid #90caf9;">P+S</span></td>
+    <td>55.05%</td>
+    <td><span style="color:#f44336;font-weight:bold">-9.47%</span></td>
+    <td><span style="color:#ff9800;font-weight:bold">27.52</span></td>
+    <td class="col-est-phf" style="background:#e8f5e9;font-style:italic;font-weight:700;color:#c62828;">87.28%</td>
+    <td>100.00%</td>
+    <td>1.2</td>
+    <td><span style="color:#4caf50;font-weight:bold">48.00</span></td>
+    <td class="col-est-hp" style="background:#e8f5e9;font-style:italic;font-weight:700;color:#2e7d32;">95.00%</td>
+    <td>81.25%</td>
+    <td>1.2</td>
+    <td><span style="color:#f44336;font-weight:bold">9.75</span></td>
+    <td class="col-est-cov" style="background:#e8f5e9;font-style:italic;font-weight:700;color:#2e7d32;">81.25%</td>
+    <td><span style="color:#4caf50;font-weight:bold">85.27</span></td>
+    <td class="col-est-total" style="background:#e8f5e9;font-style:italic;font-weight:700;color:#ff9800;">98.99</td>
+    <td><span class="risk-tag risk-tag-normal" style="font-size:11px;">✅无风险</span></td>
+</tr>
+<tr>
+    <td class="col-info"><strong>8</strong></td>
+    <td class="col-info"><strong>凤山县</strong></td>
+    <td class="col-info">G2</td>
+    <td class="col-info"><span class="risk-tag" style="background:#e8f5e9;color:#1565c0;font-size:10px;border:1px solid #90caf9;">P+S</span></td>
+    <td>61.94%</td>
+    <td><span style="color:#f44336;font-weight:bold">-2.58%</span></td>
+    <td><span style="color:#ff9800;font-weight:bold">30.97</span></td>
+    <td class="col-est-phf" style="background:#e8f5e9;font-style:italic;font-weight:700;color:#ff9800;">97.76%</td>
+    <td>100.00%</td>
+    <td>1.2</td>
+    <td><span style="color:#4caf50;font-weight:bold">48.00</span></td>
+    <td class="col-est-hp" style="background:#e8f5e9;font-style:italic;font-weight:700;color:#2e7d32;">95.00%</td>
+    <td>79.55%</td>
+    <td>1.2</td>
+    <td><span style="color:#f44336;font-weight:bold">9.55</span></td>
+    <td class="col-est-cov" style="background:#e8f5e9;font-style:italic;font-weight:700;color:#2e7d32;">81.44%</td>
+    <td><span style="color:#4caf50;font-weight:bold">88.52</span></td>
+    <td class="col-est-total" style="background:#e8f5e9;font-style:italic;font-weight:700;color:#2e7d32;">104.25</td>
+    <td><span class="risk-tag risk-tag-normal" style="font-size:11px;">✅无风险</span></td>
+</tr></tbody>
+</table>
+</div>
+<div class="note-box">
+💡 <b>计分规则</b>：
+<b>拼好饭</b>=完成率×50（封顶60）｜
+<b>货盘</b>=达标率×系数×权重，系数：[60%,100%]→1.2 / [50%,60%)→0.8 / &lt;50%→0｜
+<b>月度覆盖</b>=覆盖率×系数×10，系数：≥70%→1.2 / ≥60%→1.0 / ≥50%→0.8 / &lt;50%→0<br>
+📌 <b>权重</b>：P+S城市 = 拼好饭50%+货盘40%+月度覆盖10%；<b>P城市(东兰/凤山) = 拼好饭50%+货盘50%，不考核月度覆盖率</b><br>
+⚠️ <b>警告</b>：预估总得分&lt;90分 ｜ 💰 <b>罚款</b>：预估过程指标(货盘+覆盖)&lt;45分（结果指标≥105%可减免时门槛降为&lt;30分）｜ 🛡️ <b>可减免</b>：拼好饭预估完成率≥105%时，过程指标只需≥30分即不罚款
+</div>
+</div>
+</div>
+<script>
+function showMainTab(tabId, btn) {
+    document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+    document.getElementById(tabId).classList.add('active');
+    document.querySelectorAll('.main-tab-btn').forEach(el => el.classList.remove('active'));
+    btn.classList.add('active');
+}
+</script>
+</div>
+</body>
+</html>
