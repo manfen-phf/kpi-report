@@ -3,13 +3,13 @@ chcp 65001 >nul
 setlocal EnableDelayedExpansion
 cd /d "%~dp0"
 
-set "PY=C:\Users\ZhuanZ\.workbuddy\binaries\python\versions\3.13.12\python.exe"
+set "PY=C:\Users\13601\.workbuddy\binaries\python\envs\default\Scripts\python.exe"
 
 echo ============================================
-echo   商品运营分析报告 - 一键更新 (GitHub Pages)
+echo   商品运营分析报告(9月口径) - 一键更新 (GitHub Pages)
 echo ============================================
 echo.
-echo [1/2] 读取最新数据并生成报告...
+echo [1/2] 读取最新数据并生成报告(9月四指标口径)...
 "%PY%" "%~dp0generate_report.py"
 if errorlevel 1 (
     echo.
