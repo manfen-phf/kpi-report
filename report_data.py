@@ -395,8 +395,11 @@ def p3_series(p3):
 
 
 # ============================================ 分区维度（复刻原模板「分区进度」板块）
-# 阈值取自原 9 月模板实测反推：≥60 正常 / ≥58 低风险 / <58 高风险
-DIST_RISK = [(60.0, '正常'), (58.0, '低风险'), (0.0, '高风险')]
+# 风险状态规则（用户 2026-10-19 指定）：
+#   综合得分 > 广西区域基准        → 正常（绿）
+#   综合得分 < 广西区域基准        → 低风险（橙）
+#   综合得分 < 广西区域基准 − 2 分 → 高风险（红）
+DIST_HIGH_GAP = 2.0
 DIST_COLORS = {'正常': '#52c41a', '低风险': '#fa8c16', '高风险': '#f5222d'}
 
 
@@ -445,11 +448,12 @@ def build_districts(s1_dist, hp_dist, p3):
     base_s1 = (base_c / base_t) if base_t else None
     cov_vals = [v for v in cov.values() if v is not None]
     base_cov = (sum(cov_vals) / len(cov_vals)) if cov_vals else None
+    base_score = score(base_s1, all_sqs['kgr'], all_phf['kgr'], base_cov)
     base = dict(
         name='广西区域', s1=base_s1, sqs_kgr=all_sqs['kgr'], phf_kgr=all_phf['kgr'],
         cov=base_cov,
-        score=score(base_s1, all_sqs['kgr'], all_phf['kgr'], base_cov),
-        tgt=base_t, cur=base_c, is_base=True)
+        score=base_score,
+        tgt=base_t, cur=base_c, is_base=True, risk='基准')
 
     rows = []
     for q, s1v in s1_dist.items():
@@ -466,17 +470,24 @@ def build_districts(s1_dist, hp_dist, p3):
         r['score'] = score(r['s1'], r['sqs_kgr'], r['phf_kgr'], r['cov'])
         rows.append(r)
 
+    # 风险状态：以广西区域基准为标尺（高/等于基准=正常；低于基准=低风险；低于基准 2 分以上=高风险）
+    for r in rows:
+        gap = r['score'] - base_score
+        r['gap'] = gap
+        if gap >= 0:
+            r['risk'] = '正常'
+        elif gap > -DIST_HIGH_GAP:
+            r['risk'] = '低风险'
+        else:
+            r['risk'] = '高风险'
+        r['risk_color'] = DIST_COLORS[r['risk']]
+
     # 排名（基准行不参与排名，排在最前）
     rows.sort(key=lambda x: -x['score'])
     MEDALS = ['🥇', '🥈', '🥉']
     for i, r in enumerate(rows):
         r['rank'] = (MEDALS[i] if i < 3 else f'#{i + 1}')
-        for th, label in DIST_RISK:
-            if r['score'] >= th:
-                r['risk'] = label
-                break
-        r['risk_color'] = DIST_COLORS.get(r['risk'], '#333')
-    return dict(base=base, rows=rows)
+    return dict(base=base, rows=rows, high_gap=DIST_HIGH_GAP)
 
 
 def _p3_day_range():

@@ -45,6 +45,8 @@ function showMainTab(id, btn) {
   const el = document.getElementById(id);
   if (el) el.classList.add('active');
   if (id === 'tab2') requestAnimationFrame(renderOps);
+  // 同步 hash，便于分享深链；用 replaceState 避免污染历史记录
+  if (location.hash.slice(1) !== id) history.replaceState(null, '', '#' + id);
 }
 
 /* ============================================================
@@ -132,9 +134,14 @@ function renderDistCards() {
 
 /* 分区排名表 —— 列与徽章、风险色完全对齐原模板 */
 function renderRankTable() {
-  const ths = ['排名', '分区经理', '拼好饭完成率', '神抢手攻克率', '拼好饭攻克率', '月度覆盖率', '综合得分', '风险状态'];
+  const ths = ['排名', '分区经理', '拼好饭完成率', '神抢手攻克率', '拼好饭攻克率', '月度覆盖率', '综合得分', '对比基准', '风险状态'];
   const b = DIST.base;
   const td = (txt, cls2, style) => `<td style="padding:10px 10px;text-align:center;${style || ''};${cls2 ? 'font-weight:700;' : ''}">${txt}</td>`;
+  const gapCell = g => {
+    if (g === null || g === undefined) return td('—', 0, 'color:#999;');
+    const c = g >= 0 ? '#52c41a' : g > -DIST.high_gap ? '#fa8c16' : '#f5222d';
+    return td(`${g >= 0 ? '+' : ''}${g.toFixed(2)}`, 1, `color:${c};`);
+  };
 
   const baseRow = `<tr style="background:#fffbe6;">
     ${td('—', 1, 'font-size:15px;')}
@@ -144,6 +151,7 @@ function renderRankTable() {
     ${td(pct(b.phf_kgr), 1, `color:${scoreColor(b.phf_kgr, 0.75)};`)}
     ${td(pct(b.cov), 1, `color:${scoreColor(b.cov, 0.6)};`)}
     ${td(b.score.toFixed(2), 1, 'color:#3a5e8c;')}
+    ${td('基准', 1, 'color:#3a5e8c;')}
     ${td('基准', 1, 'color:#3a5e8c;')}</tr>`;
 
   const rows = DIST.rows.map(r => {
@@ -156,6 +164,7 @@ function renderRankTable() {
       ${td(pct(r.phf_kgr), 1, `color:${scoreColor(r.phf_kgr, 0.75)};`)}
       ${td(pct(r.cov), 1, `color:${scoreColor(r.cov, 0.6)};`)}
       ${td(r.score.toFixed(2), 1, `color:${r.risk_color};`)}
+      ${gapCell(r.gap)}
       ${td(esc(r.risk), 1, `color:${r.risk_color};`)}</tr>`;
   }).join('');
 
@@ -501,13 +510,30 @@ function renderShops() {
     + '</tbody>';
 
   document.getElementById('shopCount').innerHTML =
-    `共 <b>${fmt(all.length)}</b> 家商家${kw ? `，匹配 <b style="color:#667eea;">${fmt(data.length)}</b> 家` : ''}`
-    + `${data.length > 400 ? '，按当前排序显示前 400 家' : ''}`;
+    `<b>${curBiz === 'SQS' ? '神抢手' : '拼好饭'}</b> ｜ ${curCity} ｜ 共 <b>${fmt(all.length)}</b> 家商家`
+    + `${kw ? `，匹配 <b style="color:#667eea;">${fmt(data.length)}</b> 家` : ''}`
+    + `${data.length > 400 ? `，按当前排序显示前 <b>400</b> 家（完整清单可搜索缩小范围）` : ''}`;
 
   document.getElementById('bizSqs').classList.toggle('on', curBiz === 'SQS');
   document.getElementById('bizPhf').classList.toggle('on', curBiz === 'PHF');
 }
-window.setBiz = b => { curBiz = b; renderShops(); };
+function setBiz(b) { curBiz = b; renderShops(); }
+
+/* ---------------- 事件绑定 ---------------- */
+function bindTabs() {
+  document.getElementById('mb1').onclick = e => showMainTab('tab1', e.currentTarget);
+  document.getElementById('mb2').onclick = e => showMainTab('tab2', e.currentTarget);
+  document.getElementById('bizSqs').onclick = () => setBiz('SQS');
+  document.getElementById('bizPhf').onclick = () => setBiz('PHF');
+  window.addEventListener('hashchange', () => {
+    const h = location.hash.slice(1).split('=')[0];
+    if (h === 'tab1' && !document.getElementById('tab1').classList.contains('active')) {
+      showMainTab('tab1', document.getElementById('mb1'));
+    } else if (h === 'tab2' && !document.getElementById('tab2').classList.contains('active')) {
+      showMainTab('tab2', document.getElementById('mb2'));
+    }
+  });
+}
 
 /* ---------------- 启动 ---------------- */
 function bindOps() {
@@ -525,6 +551,7 @@ function bindOps() {
 renderTab1();
 renderTab2();
 bindOps();
+bindTabs();
 window.addEventListener('resize', () => { if (document.getElementById('tab2').classList.contains('active')) renderOps(); });
 
 // 深链：#tab2 或 #tab2=玉林市
@@ -532,12 +559,8 @@ window.addEventListener('resize', () => { if (document.getElementById('tab2').cl
   const h = decodeURIComponent(location.hash.slice(1));
   if (!h) return;
   const [tab, city] = h.split('=');
-  if (tab === 'tab2') {
-    if (city && CITIES.includes(city)) { curCity = city; document.getElementById('citySel').value = city; }
-    showMainTab('tab2', document.getElementById('mb2'));
-  } else if (tab === 'tab1') {
-    showMainTab('tab1', document.getElementById('mb1'));
-  }
+  if (city && CITIES.includes(city)) { curCity = city; document.getElementById('citySel').value = city; }
+  if (tab === 'tab1' || tab === 'tab2') showMainTab(tab, document.getElementById(tab === 'tab1' ? 'mb1' : 'mb2'));
 })();
 
 })();
