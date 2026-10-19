@@ -96,10 +96,16 @@ def update_ref(new_sha, old_sha):
 
 # ---- 文件清单（自动包含最新每日存档） ----
 FILES = [
+    # 站点（GitHub Pages 从 main 分支根目录发布）
     "index.html",
+    "style.css",
+    "app.js",
+    "data.js",
     "latest.html",
+    # 生成器
+    "report_data.py",
+    # 说明与脚本
     "README.md",
-    "generate_report.py",
     "update.bat",
     ".gitignore",
     "_deploy_api.py",
@@ -117,7 +123,7 @@ dated = latest_dated_report()
 if dated and dated not in FILES:
     FILES.append(dated)
 
-MSG = "更新商品运营分析报告(动态日维度生成器) - 一键部署"
+MSG = "更新商品运营分析报告(KPI得分+商品运营明细) - 一键部署"
 
 def main():
     # 收集本地文件内容
