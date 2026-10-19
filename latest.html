@@ -2,166 +2,108 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>商品运营分析报告 · 广西8城</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>商品运营分析报告</title>
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-<header>
-  <div class="wrap">
-    <div class="hd-top">
-      <div class="logo">商品运营分析报告</div>
-      <div class="hd-meta" id="hdMeta"></div>
+<div class="container">
+  <div class="header">
+    <h1>📊 商品运营分析报告</h1>
+    <div class="subtitle" id="subtitle"></div>
+  </div>
+
+  <div class="main-tabs">
+    <button class="main-tab-btn active" id="mb1" onclick="showMainTab('tab1', this)">📊 分区进度</button>
+    <button class="main-tab-btn" id="mb2" onclick="showMainTab('tab2', this)">📢 玉林总商KPI播报</button>
+  </div>
+
+  <!-- ==================== TAB 1：分区进度 ==================== -->
+  <div id="tab1" class="tab-content active">
+    <div class="time-progress">
+      <h3><span>⏰</span><span id="tpTitle"></span></h3>
+      <div class="progress-bar-container">
+        <div class="progress-label"><span>时间进度</span><span id="tpLabel"></span></div>
+        <div class="progress-bar"><div class="progress-fill" id="tpFill"></div></div>
+      </div>
     </div>
-    <div class="tabs">
-      <button class="tab on" data-tab="kpi">① KPI 绩效得分</button>
-      <button class="tab" data-tab="ops">② 商品运营明细</button>
-      <button class="tab" data-tab="rule">③ 指标口径</button>
+
+    <div style="padding:16px 20px 4px;">
+      <div style="font-size:16px;font-weight:700;color:#333;margin-bottom:16px;display:flex;align-items:center;gap:8px;">
+        <span>📊</span>
+        <span>KPI指标（<b id="focusDist">—</b> vs 广西区域）</span>
+        <span style="font-size:12px;font-weight:400;color:#999;margin-left:auto;" id="kpiDate"></span>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:20px;" id="distCards"></div>
+    </div>
+
+    <div style="padding:14px 20px 0;">
+      <div style="font-size:15px;font-weight:700;color:#1f3a63;margin-bottom:4px;">🏅 分区经理排名</div>
+      <div style="font-size:11.5px;color:#888;margin-bottom:12px;">
+        综合得分 = 拼好饭完成率×40% + 神抢手攻克率×30% + 拼好饭攻克率×20% + 月度覆盖率×10%（满分 100）
+        ｜ 风险阈值 ≥60 正常 / ≥58 低风险 / &lt;58 高风险
+      </div>
+      <div class="ops-tools" style="padding:0 0 12px;">
+        <select class="sel" id="focusSel"></select>
+        <span style="font-size:11.5px;color:#888;">切换分区可同步刷新上方四张卡片</span>
+      </div>
+    </div>
+    <div class="rank-wrap"><table class="rank-grid" id="rankTable"></table></div>
+  </div>
+
+  <!-- ==================== TAB 2：玉林总商 KPI 播报 ==================== -->
+  <div id="tab2" class="tab-content">
+    <div class="frame">
+      <div class="card" id="kpiCard">
+        <div class="title" id="kpiTitle"></div>
+        <div class="subtitle" id="kpiSub"></div>
+        <div class="progress-row">
+          <span class="label" id="prLabel"></span>
+          <span class="bar"><span class="fill" id="prFill"></span></span>
+          <span class="pct" id="prPct"></span>
+        </div>
+        <div class="warnbox hidden" id="kpiWarn"></div>
+
+        <div id="kpiTables"></div>
+
+        <div class="section-h">
+          <span class="left">🔍 城市货盘与商家下钻</span>
+          <span class="sub">按城市查看货盘来源结构、做功场景与商家明细</span>
+        </div>
+        <div class="ops-tools">
+          <select class="sel" id="citySel"></select>
+          <button class="btn on" id="bizSqs" onclick="setBiz('SQS')">神抢手</button>
+          <button class="btn" id="bizPhf" onclick="setBiz('PHF')">拼好饭</button>
+          <select class="sel" id="sortSel">
+            <option value="ord">按订单量降序</option>
+            <option value="amt">按实付金额降序</option>
+            <option value="rate">按达标率升序</option>
+            <option value="pool">按货盘数降序</option>
+          </select>
+          <input class="inp" id="shopSearch" placeholder="搜索商家名称 / BD MIS ID" style="width:230px">
+          <span style="font-size:11.5px;color:#888;" id="shopCount"></span>
+        </div>
+        <div class="charts">
+          <div class="chart-box">
+            <h4>货盘来源达标率</h4>
+            <div class="cap" id="srcCap"></div>
+            <div id="srcChart"></div>
+          </div>
+          <div class="chart-box">
+            <h4>结算价下探 · 做功场景分布</h4>
+            <div class="cap" id="sceneCap"></div>
+            <div id="sceneChart"></div>
+          </div>
+        </div>
+        <div class="shop-tbl-wrap"><table class="shop" id="shopTable"></table></div>
+
+        <div class="notes" id="notesBox"></div>
+        <div class="footer" id="footerBox"></div>
+      </div>
     </div>
   </div>
-</header>
-
-<div class="wrap">
-
-  <!-- ================= TAB 1: KPI ================= -->
-  <section id="tab-kpi">
-
-    <div class="pbar" id="pbar"></div>
-
-    <div class="sec">
-      <div class="sec-t">
-        <h2>8 城总览</h2>
-        <span class="n" id="ovN"></span>
-        <span class="hint">点击卡片可锁定城市，联动下方图表</span>
-      </div>
-      <div class="kpis" id="kpiCards"></div>
-    </div>
-
-    <div class="sec">
-      <div class="sec-t">
-        <h2>结果指标 · 拼好饭订单完成率</h2>
-        <span class="n">权重 40%</span>
-        <span class="hint">柱=MTD订单量与目标对比，折线=分天节奏完成率</span>
-      </div>
-      <div class="grid2">
-        <div class="chart"><h3>拼好饭 MTD 订单量 / 目标（8 城对比）</h3>
-          <div class="sub" id="s1ChartSub"></div>
-          <div id="s1Chart"></div></div>
-        <div class="chart"><h3>近5 日分天节奏完成率</h3>
-          <div class="sub">单日完成率（分天系数目标口径），&gt;100% 为超额</div>
-          <div id="s1DailyChart"></div></div>
-      </div>
-    </div>
-
-    <div class="sec">
-      <div class="sec-t">
-        <h2>过程指标 · 货盘与结算价下探</h2>
-        <span class="n">权重合计 60%</span>
-        <span class="hint">神抢手货盘 30% + 拼好饭货盘 20%（东兰/凤山 35%）+ 结算价下探 10%（东兰/凤山 25%）</span>
-      </div>
-      <div class="grid2">
-        <div class="chart"><h3>货盘达标率（神抢手 / 拼好饭）</h3>
-          <div class="sub">目标池=货盘明细行数，达标=「达标情况=达标」</div>
-          <div id="hpChart"></div></div>
-        <div class="chart"><h3>结算价下探 日均覆盖率趋势</h3>
-          <div class="sub" id="p3Sub"></div>
-          <div id="p3Chart"></div></div>
-      </div>
-    </div>
-
-    <div class="sec">
-      <div class="sec-t"><h2>实率完成版 · 全量指标明细</h2>
-        <span class="n" id="t1N"></span></div>
-      <div class="tbl-wrap"><table id="tblActual"></table></div>
-    </div>
-
-    <div class="sec">
-      <div class="sec-t"><h2>预估完成版 · 月末预判</h2>
-        <span class="n" id="t2N"></span></div>
-      <div class="tbl-wrap"><table id="tblEst"></table></div>
-    </div>
-
-    <div class="sec">
-      <div class="sec-t"><h2>过程指标明细 · 目标池 / 达标 / 攻克 三层拆解</h2></div>
-      <div class="tbl-wrap"><table id="tblDetail"></table></div>
-    </div>
-
-    <div class="sec"><div class="note" id="focusNote"></div></div>
-  </section>
-
-  <!-- ================= TAB 2: 商品运营明细 ================= -->
-  <section id="tab-ops" class="hidden">
-
-    <div class="sec">
-      <div class="sec-t"><h2>城市选择</h2><span class="hint">切换城市查看该城货盘结构与商家明细</span></div>
-      <div class="city-nav" id="cityNav"></div>
-    </div>
-
-    <div class="sec">
-      <div class="sec-t"><h2 id="ocTitle">城市货盘结构</h2><span class="n" id="ocN"></span></div>
-      <div class="kpis" id="opCards"></div>
-    </div>
-
-    <div class="sec">
-      <div class="sec-t"><h2>货盘来源细分</h2>
-        <span class="hint">按「来源」字段拆分 5 类货盘场景</span></div>
-      <div class="chart"><h3 id="srcTitle">来源达标率对比</h3>
-        <div class="sub">柱=目标池 SKU 数，折线=达标率</div>
-        <div id="srcChart"></div></div>
-    </div>
-
-    <div class="sec">
-      <div class="sec-t"><h2>结算价下探 · 做功场景结构</h2>
-        <span class="n" id="sceneN"></span></div>
-      <div class="grid2">
-        <div class="chart"><h3>做功场景分布</h3>
-          <div class="sub">基线 SKU 按做功场景拆分</div>
-          <div id="sceneChart"></div></div>
-        <div class="chart"><h3>结算价下探覆盖趋势</h3>
-          <div class="sub" id="ocP3Sub"></div>
-          <div id="ocP3Chart"></div></div>
-      </div>
-    </div>
-
-    <div class="sec">
-      <div class="sec-t"><h2>商家明细</h2><span class="n" id="shopN"></span></div>
-      <div class="filters">
-        <div class="tabs2" id="bizTabs">
-          <button data-b="SQS" class="on">神抢手</button>
-          <button data-b="PHF">拼好饭</button>
-        </div>
-        <select class="sel" id="sortSel">
-          <option value="ord">按订单量降序</option>
-          <option value="amt">按实付金额降序</option>
-          <option value="rate">按达标率升序</option>
-          <option value="pool">按货盘数降序</option>
-        </select>
-        <input class="inp" id="searchInp" placeholder="搜索商家名称 / BD MIS ID" style="width:220px">
-        <span class="sub" id="shopCount"></span>
-      </div>
-      <div class="tbl-wrap" style="max-height:560px"><table id="tblShop"></table></div>
-    </div>
-  </section>
-
-  <!-- ================= TAB 3: 口径 ================= -->
-  <section id="tab-rule" class="hidden">
-    <div class="sec">
-      <div class="sec-t"><h2>指标体系与计算口径</h2><span class="n">10月考核周期</span></div>
-      <div class="note" id="ruleBox"></div>
-    </div>
-    <div class="sec">
-      <div class="sec-t"><h2>数据源</h2></div>
-      <div class="tbl-wrap" style="max-height:none"><table id="tblSrc"></table></div>
-    </div>
-  </section>
-
 </div>
-
-<footer>
-  <div id="ftSrc"></div>
-  由 AI 生成，仅供参考，以业务系统为准
-</footer>
 
 <script src="data.js"></script>
 <script src="app.js"></script>

@@ -128,10 +128,38 @@ def read_s1():
     if not dates:
         raise RuntimeError('拼好饭-底表未取到 10 月数据')
     last = dates[-1]
+
+    # ---- 分区维度（渠道经理 col11）：最新日的目标/完成，用于「分区进度」板块
+    dist = defaultdict(lambda: {'tgt': 0.0, 'cur': 0.0, 'cities': []})
+    wb2 = openpyxl.load_workbook(SRC_S1, read_only=True, data_only=True)
+    ws2 = wb2['拼好饭-底表']
+    it2 = ws2.iter_rows(values_only=True)
+    for _ in range(3):
+        next(it2)
+    for r in it2:
+        if r[0] is None:
+            continue
+        dt = _to_date(r[0])
+        if dt != last:
+            continue
+        q = r[11]
+        tgt, cur = _num(r[13]), _num(r[14])
+        if q is None or tgt is None or cur is None:
+            continue
+        e = dist[str(q)]
+        e['tgt'] += tgt
+        e['cur'] += cur
+        if r[6]:
+            e['cities'].append(r[6])
+    wb2.close()
+
     return dict(dates=dates, trend=trend, meta=meta, last=last,
                 cur={c: trend[last].get(c) for c in CITIES},
                 grade=meta[last],
-                target={c: meta[last][c]['tgt'] for c in CITIES})
+                target={c: meta[last][c]['tgt'] for c in CITIES},
+                dist={k: dict(tgt=v['tgt'], cur=v['cur'],
+                              rate=(v['cur'] / v['tgt']) if v['tgt'] else None)
+                      for k, v in dist.items()})
 
 
 def project_s1(d, win=5, cap=1.35):
@@ -181,18 +209,30 @@ def read_hp():
            for c in CITIES}
     src_stat = defaultdict(lambda: {'pool': 0, 'ok': 0})
     shop_stat = defaultdict(lambda: {'pool': 0, 'ok': 0, 'ord': 0.0, 'amt': 0.0})
+    # 分区维度（全区所有城市，不受 CITIES 过滤影响）：SQS/PHF 各自的 达标率与攻克率
+    dist = defaultdict(lambda: {'SQS': {'pool': 0, 'ok': 0, 'kg': 0},
+                                'PHF': {'pool': 0, 'ok': 0, 'kg': 0}})
 
     for r in it:
         if r[0] is None:
             continue
         city = r[idx['城市']]
-        if city not in CITIES:
-            continue
         src = str(r[idx['来源']] or '')
         ok = (str(r[idx['达标情况']]).strip() == '达标')
         kg = (str(r[idx['攻克情况']]).strip() == '攻克')
         key = 'SQS' if src.startswith('神抢手') else ('PHF' if src.startswith('拼好饭') else None)
         if key is None:
+            continue
+
+        # 分区聚合（全区口径）
+        qn = str(r[idx['分区']] or '').strip()
+        if qn and qn != 'NULL':
+            de = dist[qn][key]
+            de['pool'] += 1
+            de['ok'] += ok
+            de['kg'] += kg
+
+        if city not in CITIES:
             continue
 
         d = stat[city][key]
@@ -260,7 +300,18 @@ def read_hp():
                                 rate=(v['ok'] / v['pool'] if v['pool'] else None))
                         for (cc, s), v in src_stat.items() if cc == c}
 
-    return city_src, shop_rows, src_break
+    # 分区维度明细（神抢手/拼好饭 各自的达标率与攻克率）
+    dist_rows = {}
+    for q, e in dist.items():
+        dist_rows[q] = {}
+        for key in ('SQS', 'PHF'):
+            v = e[key]
+            dist_rows[q][key] = dict(
+                pool=v['pool'], ok=v['ok'], kg=v['kg'],
+                rate=(v['ok'] / v['pool']) if v['pool'] else None,
+                kgr=(v['kg'] / v['pool']) if v['pool'] else None)
+
+    return city_src, shop_rows, src_break, dist_rows
 
 
 # ================================================================ C. 过程指标 结算价下探
@@ -271,6 +322,7 @@ def read_p3():
                    if '结算价做功商品池明细' in f and f.endswith('.xlsx')
                    and not f.startswith('~$'))
     daily, meta = {}, {}
+    dist_daily = {}
     for fn in files:
         wb = openpyxl.load_workbook(os.path.join(SRC_P3_DIR, fn),
                                     read_only=True, data_only=True)
@@ -283,18 +335,27 @@ def read_p3():
             wb.close()
             continue
         st = defaultdict(lambda: [0, 0, set(), set(), defaultdict(int)])
+        dst = defaultdict(lambda: [0, 0])      # 分区维度：pool / ok
         day = None
         for r in it:
             if r[0] is None:
                 continue
             d = _to_date(r[0])
             day = day or d
+            ok = (str(r[idx['SKU是否达标']]).strip() == '1')
+
+            # 分区聚合（全区口径，不受 CITIES 过滤）
+            qn = str(r[idx['分区']] or '').strip()
+            if qn and qn != 'NULL':
+                dst[qn][0] += 1
+                dst[qn][1] += ok
+
             city = r[idx['城市']]
             if city not in CITIES:
                 continue
             e = st[city]
             e[0] += 1
-            e[1] += (str(r[idx['SKU是否达标']]).strip() == '1')
+            e[1] += ok
             e[2].add(r[idx['SKU ID']])
             e[3].add(r[idx['商家ID']])
             e[4][str(r[idx['做功场景']] or '未知')] += 1
@@ -305,10 +366,14 @@ def read_p3():
         meta[day] = {c: dict(pool=st[c][0], ok=st[c][1], sku=len(st[c][2]),
                              shop=len(st[c][3]),
                              scene=dict(st[c][4])) for c in CITIES}
+        dist_daily.setdefault(day, {})
+        for q, v in dst.items():
+            if v[0]:
+                dist_daily[day][q] = v[1] / v[0]
     if not daily:
         raise RuntimeError('结算价下探：所有日文件达标列均未回填')
     return dict(daily=daily, meta=meta, last=max(daily), first=min(daily),
-                files=len(files))
+                files=len(files), dist_daily=dist_daily)
 
 
 def p3_series(p3):
@@ -329,14 +394,108 @@ def p3_series(p3):
     return days, out, avg
 
 
+# ============================================ 分区维度（复刻原模板「分区进度」板块）
+# 阈值取自原 9 月模板实测反推：≥60 正常 / ≥58 低风险 / <58 高风险
+DIST_RISK = [(60.0, '正常'), (58.0, '低风险'), (0.0, '高风险')]
+DIST_COLORS = {'正常': '#52c41a', '低风险': '#fa8c16', '高风险': '#f5222d'}
+
+
+def build_districts(s1_dist, hp_dist, p3):
+    """按分区经理聚合 4 项指标 + 综合得分 + 风险状态（对齐原模板排名表）
+    · 拼好饭完成率  : 拼好饭-底表 渠道经理维度 MTD/目标
+    · 神抢手攻克率  : 货盘明细 分区维度 神抢手* 攻克数 / 目标池
+    · 拼好饭攻克率  : 货盘明细 分区维度 拼好饭* 攻克数 / 目标池
+    · 月度覆盖率    : 结算价下探 分区维度 各日达标率算术平均
+    · 综合得分      : S1完成率*40% + 神抢手攻克率*30% + 拼好饭攻克率*20% + 覆盖率*10%（满分100）
+    """
+    # 覆盖率：考核期日均（已回填日实测，未回填日按最新已发生日外推）
+    dd = p3.get('dist_daily') or {}
+    last = p3['last']
+    all_q = {q for day in dd.values() for q in day}
+    cov = {}
+    for q in all_q:
+        vals = []
+        for dt in _p3_day_range():
+            if dt in dd and q in dd[dt]:
+                vals.append(dd[dt][q])
+            elif q in dd.get(last, {}):
+                vals.append(dd[last][q])
+        cov[q] = (sum(vals) / len(vals)) if vals else None
+
+    # 广西区域基准（全区汇总）
+    def agg(mapping, key):
+        pool = sum(v[key]['pool'] for v in mapping.values())
+        ok = sum(v[key]['ok'] for v in mapping.values())
+        kg = sum(v[key]['kg'] for v in mapping.values())
+        return dict(pool=pool, ok=ok, kg=kg,
+                    rate=(ok / pool) if pool else None,
+                    kgr=(kg / pool) if pool else None)
+
+    all_sqs = agg(hp_dist, 'SQS')
+    all_phf = agg(hp_dist, 'PHF')
+
+    def score(s1r, sqr, phr, cv):
+        """综合得分（满分100），缺项按 0 计"""
+        return ((s1r or 0) * 40 + (sqr or 0) * 30
+                + (phr or 0) * 20 + (cv or 0) * 10)
+
+    # 基准行
+    base_t = sum(v['tgt'] for v in s1_dist.values() if v['tgt'])
+    base_c = sum(v['cur'] for v in s1_dist.values() if v['tgt'])
+    base_s1 = (base_c / base_t) if base_t else None
+    cov_vals = [v for v in cov.values() if v is not None]
+    base_cov = (sum(cov_vals) / len(cov_vals)) if cov_vals else None
+    base = dict(
+        name='广西区域', s1=base_s1, sqs_kgr=all_sqs['kgr'], phf_kgr=all_phf['kgr'],
+        cov=base_cov,
+        score=score(base_s1, all_sqs['kgr'], all_phf['kgr'], base_cov),
+        tgt=base_t, cur=base_c, is_base=True)
+
+    rows = []
+    for q, s1v in s1_dist.items():
+        h = hp_dist.get(q)
+        if not h:
+            continue
+        r = dict(
+            name=q, is_base=False,
+            s1=s1v['rate'], tgt=s1v['tgt'], cur=s1v['cur'],
+            sqs_kgr=h['SQS']['kgr'], sqs_pool=h['SQS']['pool'],
+            phf_kgr=h['PHF']['kgr'], phf_pool=h['PHF']['pool'],
+            cov=cov.get(q),
+        )
+        r['score'] = score(r['s1'], r['sqs_kgr'], r['phf_kgr'], r['cov'])
+        rows.append(r)
+
+    # 排名（基准行不参与排名，排在最前）
+    rows.sort(key=lambda x: -x['score'])
+    MEDALS = ['🥇', '🥈', '🥉']
+    for i, r in enumerate(rows):
+        r['rank'] = (MEDALS[i] if i < 3 else f'#{i + 1}')
+        for th, label in DIST_RISK:
+            if r['score'] >= th:
+                r['risk'] = label
+                break
+        r['risk_color'] = DIST_COLORS.get(r['risk'], '#333')
+    return dict(base=base, rows=rows)
+
+
+def _p3_day_range():
+    days, d = [], P3_START
+    while d <= P3_END:
+        days.append(d)
+        d += datetime.timedelta(days=1)
+    return days
+
+
 # ================================================================ 组装
 def build():
     s1 = read_s1()
-    city_hp, shops, srcs = read_hp()
+    city_hp, shops, srcs, hp_dist = read_hp()
     p3 = read_p3()
     p3_days, p3_ser, p3_avg = p3_series(p3)
     proj = project_s1(s1)
     last_d = s1['last']
+    districts = build_districts(s1['dist'], hp_dist, p3)
 
     rows = []
     for c in CITIES:
@@ -424,6 +583,7 @@ def build():
             src_p3_dir=os.path.basename(SRC_P3_DIR),
         ),
         rows=rows,
+        districts=districts,
         s1_trend=s1_trend,
         s1_daily=s1_daily,
         p3_days=p3_days,
