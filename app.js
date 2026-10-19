@@ -248,7 +248,7 @@ function th2(isEst) {
   <tr class="grp">
     <th class="base" rowspan="2" style="width:88px;">城市</th>
     <th class="base" rowspan="2" style="width:56px;">城市等级</th>
-    <th class="g-s1" colspan="4">① S1 PHF订单完成率（权重40%）</th>
+    <th class="g-s1" colspan="5">① S1 PHF订单完成率（权重40%）</th>
     <th class="g-sqs" colspan="5">② 神抢手重点货盘达标率（权重30%）</th>
     <th class="g-phf" colspan="5">③ 拼好饭重点货盘达标率（权重20%/35%）</th>
     <th class="g-p2" colspan="5">④ P3 商家优惠活动覆盖率（权重10%/25%）</th>
