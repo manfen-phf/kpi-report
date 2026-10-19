@@ -243,7 +243,7 @@ renderNotes();
 }
 
 /* 三张表：实际完成版 / 预估完成版 / 过程指标明细 —— 列与配色对齐原模板 */
-function th2(cityCol = 2) {
+function th2(isEst) {
   return `<thead>
   <tr class="grp">
     <th class="base" rowspan="2" style="width:88px;">城市</th>
@@ -254,6 +254,8 @@ function th2(cityCol = 2) {
     <th class="g-p2" colspan="5">④ P3 商家优惠活动覆盖率（权重10%/25%）</th>
     <th class="g-sum" rowspan="2" style="width:96px;">绩效总得分</th>
     <th class="g-sum" rowspan="2" style="width:92px;">过程指标<br>完成率</th>
+    ${isEst ? `<th class="g-fine" rowspan="2" style="width:78px;">预测<br>警告</th>
+    <th class="g-fine" rowspan="2" style="width:92px;">预测罚款</th>` : ''}
   </tr>
   <tr class="sub">
     <th class="s1">目标数</th><th class="s1">完成</th><th class="s1">完成率</th><th class="s1">系数</th><th class="s1">得分</th>
@@ -294,6 +296,19 @@ function cellAct(r, isEst) {
   const proc = isEst ? r.est_proc : r.proc;
   const procPct = isEst ? r.est_pct : r.proc_pct;
 
+  // 预估完成版末两列 = 按预估值预判的月末负向权益
+  let eqCols = '';
+  if (isEst && r.equity_est) {
+    const e = r.equity_est;
+    const warnBad = e.warn && !e.exempt_eligible;
+    const fineBad = e.fine_state === '触发';
+    const fineTxt = fineBad
+      ? (e.relief ? '触发·减免' : '触发')
+      : (e.fine_state === '减免' ? '触发·减免' : '不触发');
+    eqCols = `<td class="${warnBad ? 'rt-r' : 'rt-g'}">${warnBad ? '触发' : '无'}</td>
+      <td class="${fineBad ? 'rt-r' : 'rt-g'}">${fineTxt}${fineBad ? ` ${e.fine_amount.toLocaleString('zh-CN')}` : ''}</td>`;
+  }
+
   return `<td class="city">${esc(r.city)}</td>
     <td class="tier">${esc(r.grade || '--')}</td>
     <td>${fmt(r.tgt)}</td><td>${fmt(cur)}</td>
@@ -302,19 +317,15 @@ function cellAct(r, isEst) {
     <td class="${sc(score, 32)}">${score === null || Number.isNaN(score) ? '—' : score.toFixed(2)}</td>
     ${sq}${ph}${p3}
     <td class="${sc(proc, 36)}">${proc.toFixed(2)}</td>
-    <td class="${sc(procPct, 0.6)}">${pct(procPct, 1)}</td>`;
+    <td class="${sc(procPct, 0.6)}">${pct(procPct, 1)}</td>${eqCols}`;
 }
 
 function renderKpiTables() {
   // ① 实际完成版
   const t1 = ROWS.map(r => `<tr>${cellAct(r, false)}</tr>`).join('');
 
-  // ② 预估完成版（斜体 +浅底，对齐原模板 fc-fore）
-  const t2 = ROWS.map(r => {
-    const tr = cellAct(r, true);
-    return `<tr style="background:#fdf6e9;">${tr.replace(/(<td[^>]*>)([^<]*)/g,
-      (m, a, b) => /预估|完成率|得分/.test(m) ? a + b : a + b)}</tr>`;
-  }).join('');
+  // ② 预估完成版（浅米底 + 斜体，对齐原模板 fc-fore；末两列为按预估值预判的负向权益）
+  const t2 = ROWS.map(r => `<tr style="background:#fdf6e9;">${cellAct(r, true)}</tr>`).join('');
 
   // ③ 过程指标明细
   const th3 = `<thead>
@@ -391,16 +402,16 @@ function renderKpiTables() {
       <span class="left">📊 实际完成版</span>
       <span class="sub">（截至 ${M.data_date}）基于当前实际完成数据</span>
     </div>
-    <div style="padding:0 18px;"><table class="dash">${th2()}<tbody>${t1}</tbody></table></div>
+    <div style="padding:0 18px;"><table class="dash">${th2(false)}<tbody>${t1}</tbody></table></div>
 
     <div class="section-h forecast">
       <span class="left">🔮 预估完成版</span>
-      <span class="sub">按当前累计趋势外推至 ${M.month_days}/${M.month_days} 的月末预判</span>
+      <span class="sub">① 星期对星期外推；② 预估达标率＝当前上线率 −10pp；③ 按当前累计达标率；④ 按最新一日当日覆盖率外推至 ${M.month_days}/${M.month_days} 计月度日均；末两列＝按预估值预判的负向权益</span>
       <span class="tag">预估值</span>
     </div>
-    <div class="fc-section" style="padding:0 18px;"><table class="dash">${th2()}<tbody>${t2}</tbody></table></div>
+    <div class="fc-section" style="padding:0 18px;"><table class="dash">${th2(true)}<tbody>${t2}</tbody></table></div>
 
-    <div class="sub-cap">过程指标明细（②③ 目标池取自官方考核目标表，达标数取自货盘明细去重表；④ 取考核期 ${M.p3_first.slice(5)} 起日均覆盖率）</div>
+    <div class="sub-cap">过程指标明细（②③ 上线/达标取自货盘明细去重表分「P1SQS 神抢手／P2PHF 拼好饭」口径；④ 取考核期 ${M.p3_first.slice(5)} 起日均覆盖率）</div>
     <div style="padding:0 18px;"><table class="dash">${th3}<tbody>${t3}</tbody></table></div>
 
     <div class="sub-cap" style="color:#c0392b;">⚠️ 负向权益与减免判定（依据《2026年10月城市外卖绩效考核方案-考核框架和关联权益》）</div>
@@ -414,41 +425,63 @@ function renderNotes() {
   const phf = ROWS.filter(r => r.ph_rate !== null);
   const rng = a => `${pct(Math.min(...a.map(x => x.rate)))} ~ ${pct(Math.max(...a.map(x => x.rate)))}`;
   const eq = EQ;
+  const dayN = Number(M.data_date.slice(-2));
+  const procVals = ROWS.map(r => r.proc);
+  const procLo = Math.min(...procVals), procHi = Math.max(...procVals);
+  const p3vals = ROWS.map(r => r.p3_rate).filter(v => v !== null);
+  const p3Lo = Math.min(...p3vals), p3Hi = Math.max(...p3vals);
+  const fineList = ROWS.filter(r => r.equity && r.equity.fine_state === '触发')
+    .map(r => `${r.city} ${r.proc.toFixed(2)}`);
   const tierRows = Object.keys(eq.fine_by_tier || {}).sort()
-    .map(t => `${t} ${(eq.fine_by_tier[t] || 0).toLocaleString('zh-CN')}元`).join('　');
+    .map(t => `${t} ¥${(eq.fine_by_tier[t] || 0).toLocaleString('zh-CN')}`).join('　');
 
   document.getElementById('notesBox').innerHTML =
-    `<b>指标体系（10月）</b>：① PHF订单完成率 40% + ② 神抢手重点货盘商品达标率 30% `
-    + `+ ③ 拼好饭重点货盘商品达标率 20% + ④ 商家参与优惠活动覆盖率 10%（过程指标合计 60%）。<br>`
-    + `<b>目标值来源</b>：<b>${M.src_target}</b>（下发商品池数量），`
-    + `达标率 = 明细表达标数 ÷ 官方下发商品池数；明细表行数与下发池数存在 2%~8% 差异（已留痕对比）。<br>`
-    + `<b>S1</b>：得分 = 完成率 × 系数 × 40%；系数 &lt;80% = 0、≥80% = 1，完成率封顶 120%。<br>`
-    + `<b>②③</b>：得分 = 达标率 × 系数 × 权重（②30%；③8城20% / 东兰凤山35%）；`
-    + `系数 <b style="color:#9c1b1b">70-100% = 1.2、60-70% = 0.8、&lt;60% = 0</b>。<br>`
-    + `<b>④P3</b>：得分 = 日均覆盖率 × 系数 × 权重（8城10% / 东兰凤山25%）；`
-    + `系数 <b style="color:#9c1b1b">60-100% = 1.2、50-60% = 1、30-50% = 0.8、&lt;30% = 0</b>；`
-    + `覆盖率取「考核期累计日均」= ${M.p3_first.slice(5)}~${M.month_days} 各日 SKU 达标率的算术平均，`
-    + `<b>未发生日期取已发生最新日期（${M.p3_last.slice(5)}）外推至月底</b>。<br>`
-    + `<b>权重转移</b>：东兰县、凤山县无神抢手目标池，30% 转移给 ③（20%→35%）与 ④（10%→25%），过程权重合计仍为 60%。<br>`
+    `<b>指标体系（10月）</b>：① PHF订单完成率 40% ＋ ② 神抢手重点货盘商品达标率 30% ＋ ③ 拼好饭重点货盘商品达标率 20% ＋ ④ 商家参与优惠活动覆盖率 10%（过程指标合计 60%）。<br>`
+    + `<b>①S1</b>：得分=完成率×系数×40%×100；系数 &lt;80%=0、≥80%=1；封顶 120%。<br>`
+    + `<b>②神抢手货盘 ／ ③拼好饭货盘</b>：得分=达标率×系数×权重（②30%；③8城20%/东兰凤山35%）×100；`
+    + `②系数（10月新调整）<b style="color:#9c1b1b">70-100%=1.2、60-70%=0.8、&lt;60%=0</b>（满系数线由 9 月的 60% 提高至 70%）；`
+    + `③系数 <b style="color:#9c1b1b">60-100%=1.2、50-60%=1、30-50%=0.8、&lt;30%=0</b>。<br>`
+    + `<b>②③达标口径</b>：需招商上线在售，且 神抢手商品 全月累计订单≥3单且 GTV≥40元 ／ 拼好饭商品 全月累计订单≥5单且 GTV≥60元。<br>`
+    + `<b>④P3</b>：得分=日均覆盖率×系数×权重（8城10%/东兰凤山25%）×100；`
+    + `系数 <b style="color:#9c1b1b">60-100%=1.2、50-60%=1、30-50%=0.8、&lt;30%=0</b>；达标口径 = 当前结算价≤目标结算价。`
+    + `覆盖率取「考核期累计日均」= 考核期（${M.p3_first.slice(5)}–${M.month_days}/${M.month_days}）内各日达标率的算术平均；`
+    + `考核期未启动前（数据 ≤10/7）只展示当日达标率、系数/得分自 ${M.p3_first.slice(5)} 起算。<br>`
+    + `<b>目标值来源</b>：${M.src_target}（下发商品池数量）；达标率 = 明细表达标数 ÷ 官方下发商品池数，`
+    + `明细表行数与下发池数存在 2%~8% 差异（已在数据层并列留痕）。<br>`
+    + `<b>权重转移</b>：东兰县、凤山县无神抢手目标池，30% 转移给 ③拼好饭货盘(+15%→35%) 与 ④P3(+15%→25%)，过程权重合计仍为 60%。<br>`
+    + `<b>过程指标完成率</b> = ②③④得分 ÷ 60（过程权重满分 60）；罚款线 = 54 分（90%）；`
+    + `免罚规则：过程完成率≥90% 直接免罚；唯一豁免 = 结果指标完成率 ≥105% 且 过程完成率 ≥60%。<br>`
 
-    + `<b style="color:#c0392b">━━ 负向权益 ━━</b>（来源：2026年10月城市外卖绩效考核方案-考核框架和关联权益）<br>`
-    + `<b>模块绩效得分</b> = 结果指标合计得分 + 过程指标合计得分（满分 40×1.2 + 60×1.2 = 120分）。<br>`
-    + `<b>① 警告</b>：模块绩效得分 &lt; <b style="color:#9c1b1b">${eq.warn_line} 分</b> → 触发 <b>1 个警告</b>；`
-    + `各业务模块间处罚累加，城市最多 <b>${eq.max_warn_total} 个警告</b>。<br>`
-    + `<b>② 罚款</b>：过程指标模块完成率 &lt; <b style="color:#9c1b1b">${pct(eq.fine_rate, 0)}</b> → 触发对应城市等级罚款。<br>`
-    + `　　完成率 = 过程指标合计得分 ÷（过程权重合计 ${(60 * 1.2).toFixed(0)}）；罚款金额按等级：${tierRows || '—'}`
-    + `${(eq.fine_by_tier && eq.fine_by_tier.G3 === 0) ? '（G3 未在方案中列示，按不罚款处理）' : ''}。<br>`
-    + `<b>③ 罚款减免</b>：同时满足 ①结果模块完成率 ≥<b>${pct(eq.relief_result, 0)}</b> ②过程模块完成率 ≥<b>${pct(eq.relief_proc, 0)}</b> → 当月生效。<br>`
-    + `<b>④ 警告豁免</b>：模块月均绩效得分 ≥<b>${eq.exempt_score} 分</b>，`
-    + `且需位于季度内同等级城市前 <b>${pct(eq.exempt_top_pct, 0)}</b>（本报告仅能判定得分条件，前 5% 需全区域历史数据，标记待核）。<br>`
+    + `<b style="color:#c0392b">━━ 负向权益（10月，口径与 9 月一致）━━</b><br>`
+    + `<b>警告线与罚款脱钩</b>：绩效总得分 &lt; <b style="color:#9c1b1b">${eq.warn_line}</b> → 触发警告（各模块累加，城市最多 ${eq.max_warn_total} 个）；<br>`
+    + `<b>罚款触发起点</b> = 过程指标完成率 &lt; <b style="color:#9c1b1b">90%</b>（即过程得分 &lt; 54 分／满分 60），`
+    + `唯一豁免 = 结果指标完成率 ≥105% 且 过程指标完成率 ≥60%（★结果指标 = ① S1 PHF订单完成率，非绩效总分）。<br>`
+    + `<b>罚款标准按城市等级</b>：${tierRows || '—'}；G3（东兰、凤山）不涉及罚款。<br>`
+    + `<b>警告豁免</b>：模块月均绩效得分 ≥${eq.exempt_score} 分，且需位于季度内同等级城市前 ${pct(eq.exempt_top_pct, 0)}`
+    + `（前 5% 需全区域历史数据，本看板标记「待核」）。<br>`
+    + `本表「实际完成版」为按当前实际值触发的<b>即时判定</b>；「预估完成版」末两列 = 按预估值预判的<b>月末结果</b>。<br>`
 
-    + `<b style="color:#1d6b1d">━━ 数据观察（截至 ${M.data_date}）━━</b><br>`
-    + `S1 完成率 ${rng(ROWS)}，`
+    + `<b style="color:#1f3a63">━━ 预测说明（预估完成版口径）━━</b><br>`
+    + `<b>① S1 按星期对星期外推</b>：月末 = 实际累计（${M.data_date}）＋ 剩余每天按本月已有逐日窗口同星期当日订单量推算`
+    + `（缺样本的星期按当月日均兜底）。<br>`
+    + `<b>② 神抢手预估达标率 = 当前上线率 − 10pp</b>（按上线商品的达成折损估计），再按 ② 系数规则与 30% 权重计分。<br>`
+    + `<b>③ 拼好饭预估达标率 = 当前累计达标率</b>（不外推），按 ③ 系数规则与权重计分。<br>`
+    + `<b>④ P3 以最新一日的当日覆盖率外推填满考核期至 ${M.month_days}/${M.month_days}</b>`
+    + `（月度日均覆盖率 = ［考核期已观测各日覆盖率之和 ＋ 剩余天数 × 最新一日当日覆盖率］÷ 考核期 24 天），再按 ④ 系数规则计分；`
+    + `覆盖率分母 = 当日下发池 SKU 数，逐日变化，故预估版「达标数」列沿用最新一日的达标 SKU 数。<br>`
+
+    + `<b style="color:#1d6b1d">━━ 数据说明（截至 ${M.data_date}）━━</b><br>`
+    + `① 考核已进行 <b>${dayN}</b> 天（时间进度 <b>${pct(M.time_pct)}</b>），S1完成率 ${rng(ROWS)}，`
     + (s1fail.length
-      ? `<b style="color:#9c1b1b">${s1fail.length} 城低于 80% 系数线（${s1fail.map(r => r.city).join('、')}）→ 得分归 0</b>，是本月最大失分项`
-      : `<b style="color:#155f15">8 城全部 ≥80% 系数线</b>`)
-    + `；神抢手货盘 ${rng(sqs)}，拼好饭货盘 ${rng(phf)}；`
-    + `P3 已回填 <b>${M.p3_days}</b> 天（最新 ${M.p3_last.slice(5)}）。`;
+      ? `<b style="color:#9c1b1b">${s1fail.length} 城低于 80% 系数线（${s1fail.map(r => r.city).join('、')}）→ ① 得分全部为 0</b>（月末按累计完成率定档）`
+      : `<b style="color:#155f15">8 城全部高于 80% 系数线</b>`)
+    + `；② 神抢手货盘达标率 ${rng(sqs)}（东兰/凤山不考核）；③ 拼好饭货盘达标率 ${rng(phf)}；`
+    + `④ P3 考核期已跑 <b>${M.p3_days}</b> 天（${M.p3_first.slice(5)} 起），累计日均覆盖率 ${pct(p3Lo)}~${pct(p3Hi)}；`
+    + `过程指标完成率 ${pct(procLo / 60, 1)}~${pct(procHi / 60, 1)}%（过程得分÷60）。`
+    + (fineList.length
+      ? `<b style="color:#9c1b1b">⚠️ ${fineList.length} 城过程得分低于罚款线 54 分</b>：${fineList.join('、')}。`
+      : `<b style="color:#155f15">8 城过程得分均 ≥54 分罚款线</b>。`)
+    + `<br>口径沿革：10月起 ② 满系数线由 60% 上调至 70%；③ 由 9 月的「PHF 拼好饭货盘攻克率」调整为「拼好饭重点货盘商品达标率」，与 ② 统一为「上线在售 ＋ 单量/GTV 双门槛」口径。`;
 
   document.getElementById('footerBox').innerHTML =
     `数据来源：${M.src_target}（考核目标）＋⑥【商品绩效】-拼好饭+神枪手（拼好饭-底表）`

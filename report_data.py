@@ -75,6 +75,15 @@ FINE_BY_TIER = {
 }
 MAX_WARN_TOTAL = 4     # 各业务模块间处罚累加，城市最多触发 4 个警告
 
+# ---------------------------------------------------------------- 预估口径（月末预判）
+#① S1：星期对星期外推 —— 月末 = 实际累计 + 剩余每天按同星期当日单量推算（缺样本按当月日均兜底）
+#   → 见 project_s1()
+# ② 神抢手：预估达标率 = 当前上线率 − 10pp（按上线商品的达成折损估计，向下折损）
+EST_SQS_DROP = 0.10
+# ③ 拼好饭：预估达标率 = 当前累计达标率（不外推）
+# ④ P3：月度日均覆盖率 = [已观测各日之和 + 剩余天数 × 最新一日当日覆盖率] ÷ 24 天
+#   → 见 p3_series()
+
 
 def coef(rate, table):
     if rate is None:
@@ -216,35 +225,58 @@ def read_s1():
                       for k, v in dist.items()})
 
 
-def project_s1(d, win=5, cap=1.35):
-    """S1 月末预估：近 win 个观测日的日均增量（按真实间隔折算）线性外推，完成率封顶 cap"""
+def project_s1(d):
+    """S1 月末预估 —— 星期对星期外推（对齐原模板口径）
+
+    月末预估 = 实际累计(截至数据日)
+             + Σ 剩余每一天的预估单量
+    预估单量：取本月已有逐日窗口内「同星期几」的历史日单量；
+             若该星期几在窗口内无样本，则退回当月日均单量兜底。
+
+    逐日单量 = MTD 差分（底表可能缺日，需按真实间隔天数折算）。
+    """
     trend, dates = d['trend'], d['dates']
+    last = dates[-1]
     last_i = len(dates) - 1
     remain = MONTH_DAYS - last_i
+    if remain <= 0:
+        return {c: (trend[last].get(c) or 0) for c in CITIES}
 
-    inc = [None] * len(dates)
+    # ---- 逐日单量（按真实间隔折算，修正底表缺日造成的跨天跳变）
+    daily = {}          # date -> {city: 单量}
     for i in range(1, len(dates)):
         gap = (dates[i] - dates[i - 1]).days
-        vs = []
+        row = {}
         for c in CITIES:
             a, b = trend[dates[i - 1]].get(c), trend[dates[i]].get(c)
-            vs.append(None if (a is None or b is None) else (b - a) / gap)
-        if all(x is not None for x in vs):
-            inc[i] = statistics.mean(vs)
+            if a is not None and b is not None:
+                row[c] = (b - a) / gap
+        daily[dates[i]] = row
 
     out = {}
     for c in CITIES:
-        v = [trend[dt].get(c) for dt in dates]
-        tgt = d['target'][c]
-        if any(x is None for x in v) or not tgt:
-            out[c] = v[-1] if v[-1] is not None else 0
+        cur = trend[last].get(c)
+        if cur is None:
+            out[c] = 0
             continue
-        base = [inc[i] for i in range(max(1, last_i + 1 - win), last_i + 1)
-                if inc[i] is not None]
-        if not base:
-            base = [inc[i] for i in range(1, last_i + 1) if inc[i] is not None]
-        pred = v[-1] + remain * (statistics.mean(base) if base else 0)
-        out[c] = min(pred, tgt * cap)
+        # 同星期几 → 历史日单量列表
+        by_wd = defaultdict(list)
+        for dt, row in daily.items():
+            if c in row and row[c] is not None:
+                by_wd[dt.weekday()].append(row[c])
+        # 当月日均兜底（用窗口内所有已观测日的均值）
+        allv = [row[c] for row in daily.values()
+                if c in row and row[c] is not None]
+        fallback = statistics.mean(allv) if allv else 0
+
+        add = 0.0
+        for k in range(1, remain + 1):
+            dt = last + datetime.timedelta(days=k)
+            wd = dt.weekday()
+            samples = by_wd.get(wd) or []
+            # 同星期样本不足 2 个时也允许取均值；无样本用当月日均兜底
+            add += statistics.mean(samples) if samples else fallback
+        out[c] = cur + add
     return out
 
 
@@ -431,20 +463,38 @@ def read_p3():
 
 
 def p3_series(p3):
-    """10/8-10/31 每日序列（未发生日取最新已发生日外推）+ 日均覆盖率"""
+    """P3 考核期（10/8-10/31）每日序列 + 月度日均覆盖率
+
+    对齐原模板口径：
+      月度日均覆盖率 = [考核期已观测各日覆盖率之和 + 剩余天数 × 最新一日当日覆盖率] ÷ 考核期总天数
+    即：已发生日用实测值，未发生日统一按「最新一日」当日覆盖率外推填满至 10/31。
+    """
     daily, last = p3['daily'], p3['last']
+    total_days = (P3_END - P3_START).days + 1        # 考核期总天数（10/8~10/31 = 24 天）
     days, out = [], {c: [] for c in CITIES}
+    remain_cnt = 0
     d = P3_START
     while d <= P3_END:
-        src = daily[d] if d in daily else daily[last]
+        if d in daily:
+            src = daily[d]
+        else:
+            src = daily[last]
+            remain_cnt += 1
         days.append(d.strftime('%m-%d'))
         for c in CITIES:
             out[c].append(src.get(c))
         d += datetime.timedelta(days=1)
+
+    # 月度日均 = (已观测之和 + 剩余天数 × 最新一日) / 总天数
     avg = {}
     for c in CITIES:
-        v = [x for x in out[c] if x is not None]
-        avg[c] = sum(v) / len(v) if v else None
+        latest = daily[last].get(c)
+        if latest is None:
+            v = [x for x in out[c] if x is not None]
+            avg[c] = sum(v) / len(v) if v else None
+            continue
+        observed = [daily[dt].get(c) for dt in sorted(daily) if daily[dt].get(c) is not None]
+        avg[c] = (sum(observed) + remain_cnt * latest) / total_days if total_days else None
     return days, out, avg
 
 
@@ -610,9 +660,9 @@ def assess_equity(score_result, score_proc, tier, n_warn_modules=0):
         warn_count=(1 if (warn and not exempt_eligible) else 0),
         fine=fine, fine_state=fine_state, fine_amount=(fine_rate_raw if fine else 0),
         relief=relief, relief_rate=RELIEF_RESULT, relief_proc_rate=RELIEF_PROC,
-        exempt_line=EXEMPT_SCORE,
-        tier=str(tier or '').strip(),
-    )
+exempt_line=EXEMPT_SCORE,
+            tier=str(tier or '').strip(),
+        )
 
 
 # ================================================================ 组装
@@ -672,16 +722,18 @@ def build():
         if c in NO_SQS:
             esq = None
         else:
+            # 预估完成版②：预估达标率 = 当前上线率 − 10pp（按上线商品的达成折损估计）
             pool = sq_pool
-            ok = sq_ok + (pool - sq_ok) * 0.10
-            r2 = ok / pool if pool else None
+            r2 = max((sq_rate or 0) - EST_SQS_DROP, 0) if sq_rate is not None else None
+            ok2 = round(r2 * pool) if r2 is not None else 0
             k2 = coef(r2, HP_COEF)
-            esq = dict(pool=pool, ok=round(ok), rate=r2, k=k2,
+            esq = dict(pool=pool, ok=ok2, rate=r2, k=k2,
                        score=(r2 * k2 * W[c]['SQS']) if r2 else 0)
         est = (esq['score'] if esq else 0) + ph_score + p3_score
 
-        # ★ 负向/正向权益判定
+        # ★ 负向/正向权益判定：实际版（当前实际值触发）+ 预估版（按预估值预判月末）
         equity = assess_equity(s1_score, proc, m.get('grade'))
+        equity_est = assess_equity(ps, est, m.get('grade'))
 
         rows.append(dict(
             city=c, grade=m.get('grade'), mgr=m.get('mgr'),
@@ -699,6 +751,7 @@ def build():
             est_proc=est, est_pct=(est / pw if pw else None),
             est_sq=esq,
             equity=equity,
+            equity_est=equity_est,
             # 官方目标 vs 明细表实际行数（口径差异留痕，便于核对）
             tgt_official=dict(s1=tgt, sqs=sq_pool, phf=ph_pool, p3=p3_pool),
             pool_mine=dict(s1=tgt, sqs=sq_pool_mine, phf=ph_pool_mine, p3=p3_pool_mine),
