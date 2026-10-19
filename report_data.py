@@ -21,6 +21,7 @@ os.makedirs(OUT_DIR, exist_ok=True)
 SRC_RESULT_DIR = r'E:\总商维度数据\1结果指标'
 SRC_HP_DIR      = r'E:\总商维度数据\2过程指标\每日明细'
 SRC_P3_DIR      = r'E:\总商维度数据\2过程指标\结算价下探'
+SRC_TARGET_DIR  = r'E:\总商维度数据\考核目标'      # 官方考核目标（权威目标值）
 
 
 def latest(pattern, d):
@@ -51,8 +52,28 @@ W = {c: {'S1': 40, 'SQS': 0 if c in NO_SQS else 30,
 S1_COEF = [(0.80, 1.0), (0.0, 0.0)]
 HP_COEF = [(0.70, 1.2), (0.60, 0.8), (0.0, 0.0)]
 P3_COEF = [(0.60, 1.2), (0.50, 1.0), (0.30, 0.8), (0.0, 0.0)]
-FINELINE = 54          # 过程指标罚款线（满分60的 90%）
-BLUELINE = 36          # 60% 免罚线
+
+# ---------------------------------------------------------------- 负向权益
+# 来源：2026年10月城市外卖绩效考核方案-考核框架和关联权益（学城）
+#注1：拼好饭&神抢手过程模块完成率 = 过程指标合计得分 /（过程指标合计权重*100）
+#   拼好饭&神抢手结果模块完成率 = 结果指标合计得分 /（结果指标合计权重*100）
+# 注2：涉及具体指标得分计算规则参考「拼好饭&神抢手业务考核方案」
+WARN_LINE = 90.0# 模块绩效得分 < 90 分 → 触发 1 个警告
+FINE_RATE = 0.90       # 过程模块完成率 < 90% → 触发对应城市等级罚款
+RELIEF_RESULT = 1.05   # 罚款减免：结果模块完成率 ≥105%
+RELIEF_PROC = 0.60     # 罚款减免：过程模块完成率 ≥60%
+EXEMPT_SCORE = 105.0   # 警告豁免：模块月均绩效得分 ≥105 分
+EXEMPT_TOP_PCT = 0.05  # 警告豁免：季度内该模块月均得分位于同等级城市前 5%
+
+# 拼好饭&神抢手过程模块罚款（按城市等级，单位：元）
+FINE_BY_TIER = {
+    'E0': 15000, 'E1': 15000, 'E2': 12000, 'E3': 12000,
+    'F1': 8000, 'F2': 8000, 'F3': 8000,
+    'G1': 4000, 'G2': 4000,
+    # G3 未列示→ 不触发罚款（保守处理，见README 说明）
+    'G3': 0,
+}
+MAX_WARN_TOTAL = 4     # 各业务模块间处罚累加，城市最多触发 4 个警告
 
 
 def coef(rate, table):
@@ -88,6 +109,39 @@ def _num(v):
         return float(s)
     except ValueError:
         return None
+
+
+# ================================================================ 官方考核目标
+# 来源：E:\总商维度数据\考核目标\10月拼好饭神抢手绩效考核方案、目标.xlsx（sheet '0'）
+#列：7=结果指标目标(S1 PHF订单) / 11=过程1目标(神抢手货盘) / 14=过程2目标(拼好饭货盘) / 17=过程3目标(P3覆盖)
+# 权重：5=结果40% / 9,12,15=过程三项权重（东兰凤山神抢手为空→权重转移）
+def read_targets():
+    path = latest(r'.*拼好饭神抢手绩效考核方案.*\.xlsx', SRC_TARGET_DIR)
+    wb = openpyxl.load_workbook(path, read_only=True, data_only=True)
+    ws = wb[wb.sheetnames[0]]
+    rows = list(ws.iter_rows(values_only=True))
+    wb.close()
+
+    out = {}
+    for r in rows[1:]:
+        if not r[1]:
+            continue
+        city = str(r[1]).strip()
+        out[city] = dict(
+            node_id=r[0],
+            scheme=r[4],
+            w_s1=_num(r[5]) / 100 if _num(r[5]) else None,
+            label_s1=r[6], tgt_s1=_num(r[7]),
+            w_sqs=_num(r[9]) / 100 if _num(r[9]) else None,
+            label_sqs=r[10], tgt_sqs=_num(r[11]),
+            w_phf=_num(r[12]) / 100 if _num(r[12]) else None,
+            label_phf=r[13], tgt_phf=_num(r[14]),
+            w_p3=_num(r[15]) / 100 if _num(r[15]) else None,
+            label_p3=r[16], tgt_p3=_num(r[17]),
+        )
+    if not out:
+        raise RuntimeError('考核目标表未取到城市数据')
+    return out, os.path.basename(path)
 
 
 # ================================================================ A. 结果指标 S1
@@ -498,6 +552,69 @@ def _p3_day_range():
     return days
 
 
+# ============================================ 负向权益 / 正向权益判定
+def assess_equity(score_result, score_proc, tier, n_warn_modules=0):
+    """按学城《考核框架和关联权益》判定警告与罚款
+
+    参数
+      score_result : 结果指标合计得分（满分 = 40 × 1.2 = 48）
+      score_proc   : 过程指标合计得分（满分 = 60 × 1.2 = 72）
+      tier         : 城市等级，如 E1 / F2 / G3
+    返回 dict：模块得分、完成率、警告、罚款、减免、豁免
+
+    规则（原文）
+      · 警告：拼好饭&神抢手模块绩效得分 < 90 分 → 触发 1 个警告
+      · 罚款：过程指标模块完成率 < 90% → 触发对应城市等级的罚款
+      · 罚款减免：同时满足 ①结果模块完成率 ≥105% ②过程模块完成率 ≥60%
+      · 警告豁免：模块月均绩效得分 ≥105 分（且季度内位于同等级城市前 5%，
+                  前 5% 需全区域历史数据，当前无法判定 → 标记为「待核」）
+    """
+    RES_W = 40.0      # 结果指标合计权重
+    PRO_W = 60.0      # 过程指标合计权重
+    res_rate = (score_result / (RES_W * 1.2)) if score_result is not None else None
+    proc_rate = (score_proc / (PRO_W * 1.2)) if score_proc is not None else None
+    # 模块绩效得分 = 结果得分 + 过程得分（满分 40×1.2 + 60×1.2 = 120）
+    module_score = ((score_result or 0) + (score_proc or 0))
+    module_w = RES_W + PRO_W
+
+    warn = (module_score < WARN_LINE)
+    # 警告豁免：得分 ≥105 即具备豁免资格；前 5% 条件需全区域数据，标记待核
+    exempt_eligible = module_score >= EXEMPT_SCORE
+    if warn and exempt_eligible:
+        warn_state = '已豁免（待核同等级前5%）'
+    elif warn:
+        warn_state = '触发'
+    elif exempt_eligible:
+        warn_state = '无警告（得分达豁免线）'
+    else:
+        warn_state = '无警告'
+
+    fine_rate_raw = FINE_BY_TIER.get(str(tier).strip().upper(), 0)
+    fine = (proc_rate is not None and proc_rate < FINE_RATE and fine_rate_raw > 0)
+    relief = (res_rate is not None and proc_rate is not None
+              and res_rate >= RELIEF_RESULT and proc_rate >= RELIEF_PROC)
+
+    if fine and relief:
+        fine_state = '减免'
+    elif fine:
+        fine_state = '触发'
+    else:
+        fine_state = '不触发'
+
+    return dict(
+        res_score=score_result, proc_score=score_proc,
+        res_rate=res_rate, proc_rate=proc_rate,
+        module_score=module_score, module_max=module_w * 1.2,
+        module_rate=(module_score / (module_w * 1.2) if module_score is not None else None),
+        warn=warn, warn_state=warn_state, exempt_eligible=exempt_eligible,
+        warn_count=(1 if (warn and not exempt_eligible) else 0),
+        fine=fine, fine_state=fine_state, fine_amount=(fine_rate_raw if fine else 0),
+        relief=relief, relief_rate=RELIEF_RESULT, relief_proc_rate=RELIEF_PROC,
+        exempt_line=EXEMPT_SCORE,
+        tier=str(tier or '').strip(),
+    )
+
+
 # ================================================================ 组装
 def build():
     s1 = read_s1()
@@ -507,27 +624,41 @@ def build():
     proj = project_s1(s1)
     last_d = s1['last']
     districts = build_districts(s1['dist'], hp_dist, p3)
+    targets, target_file = read_targets()
 
     rows = []
     for c in CITIES:
         m = s1['meta'][last_d].get(c, {})
-        cur, tgt = s1['cur'].get(c), s1['target'].get(c)
+        T = targets.get(c, {})
+        cur = s1['cur'].get(c)
+        # ★ 目标值一律以官方考核目标表为准，缺失才回退到底表
+        tgt = T.get('tgt_s1') or s1['target'].get(c)
         rate = (cur / tgt) if (cur and tgt) else None
         k1 = coef(rate, S1_COEF)
         s1_score = min(rate, 1.2) * k1 * W[c]['S1'] if rate else 0
 
         hp = city_hp[c]
-        if c in NO_SQS or not hp['SQS']['pool']:
+        # ★ 达标率分母 = 官方下发商品池数量；分子仍取明细表达标数
+        sq_pool_mine = hp['SQS']['pool']
+        sq_pool = T.get('tgt_sqs') or sq_pool_mine
+        sq_ok = hp['SQS']['ok']
+        if c in NO_SQS or not sq_pool:
             sq_rate = sq_k = sq_score = None
         else:
-            sq_rate = hp['SQS']['rate']
+            sq_rate = (sq_ok / sq_pool) if sq_pool else None
             sq_k = coef(sq_rate, HP_COEF)
-            sq_score = sq_rate * sq_k * W[c]['SQS']
+            sq_score = sq_rate * sq_k * W[c]['SQS'] if sq_rate else 0
 
-        ph_rate, ph_k = hp['PHF']['rate'], coef(hp['PHF']['rate'], HP_COEF)
+        ph_pool_mine = hp['PHF']['pool']
+        ph_pool = T.get('tgt_phf') or ph_pool_mine
+        ph_ok = hp['PHF']['ok']
+        ph_rate = (ph_ok / ph_pool) if ph_pool else None
+        ph_k = coef(ph_rate, HP_COEF)
         ph_score = ph_rate * ph_k * W[c]['PHF'] if ph_rate is not None else 0
 
         p3r = p3_avg[c]
+        p3_pool_mine = p3['meta'][p3['last']].get(c, {}).get('pool')
+        p3_pool = T.get('tgt_p3') or p3_pool_mine
         p3_k = coef(p3r, P3_COEF)
         p3_score = (p3r or 0) * p3_k * W[c]['P3']
 
@@ -541,12 +672,16 @@ def build():
         if c in NO_SQS:
             esq = None
         else:
-            pool, ok = hp['SQS']['pool'], hp['SQS']['ok'] + (hp['SQS']['pool'] - hp['SQS']['ok']) * 0.10
+            pool = sq_pool
+            ok = sq_ok + (pool - sq_ok) * 0.10
             r2 = ok / pool if pool else None
             k2 = coef(r2, HP_COEF)
             esq = dict(pool=pool, ok=round(ok), rate=r2, k=k2,
                        score=(r2 * k2 * W[c]['SQS']) if r2 else 0)
         est = (esq['score'] if esq else 0) + ph_score + p3_score
+
+        # ★ 负向/正向权益判定
+        equity = assess_equity(s1_score, proc, m.get('grade'))
 
         rows.append(dict(
             city=c, grade=m.get('grade'), mgr=m.get('mgr'),
@@ -563,6 +698,11 @@ def build():
             proc=proc, proc_w=pw, proc_pct=(proc / pw if pw else None),
             est_proc=est, est_pct=(est / pw if pw else None),
             est_sq=esq,
+            equity=equity,
+            # 官方目标 vs 明细表实际行数（口径差异留痕，便于核对）
+            tgt_official=dict(s1=tgt, sqs=sq_pool, phf=ph_pool, p3=p3_pool),
+            pool_mine=dict(s1=tgt, sqs=sq_pool_mine, phf=ph_pool_mine, p3=p3_pool_mine),
+            ok_count=dict(sqs=sq_ok, phf=ph_ok, p3=p3['meta'][p3['last']].get(c, {}).get('ok')),
         ))
 
     # ---- S1 趋势序列（每城 MTD + 完成率）
@@ -586,12 +726,22 @@ def build():
             p3_first=p3['first'].strftime('%Y-%m-%d'),
             month_days=MONTH_DAYS,
             time_pct=round(last_d.day / MONTH_DAYS, 4),
-            fineline=FINELINE, blueline=BLUELINE,
             cities=CITIES, no_sqs=sorted(NO_SQS),
             weights=W,
             src_result=os.path.basename(SRC_S1),
             src_hp=os.path.basename(SRC_HP),
             src_p3_dir=os.path.basename(SRC_P3_DIR),
+            src_target=target_file,
+            equity_rules=dict(
+                warn_line=WARN_LINE,
+                fine_rate=FINE_RATE,
+                relief_result=RELIEF_RESULT,
+                relief_proc=RELIEF_PROC,
+                exempt_score=EXEMPT_SCORE,
+                exempt_top_pct=EXEMPT_TOP_PCT,
+                fine_by_tier=FINE_BY_TIER,
+                max_warn_total=MAX_WARN_TOTAL,
+            ),
         ),
         rows=rows,
         districts=districts,

@@ -14,7 +14,9 @@ if (!D) {
 }
 
 const M = D.meta, ROWS = D.rows, CITIES = M.cities, NO_SQS = new Set(M.no_sqs);
-const FINE = M.fineline, BLUE = M.blueline, W = M.weights;
+const FINE = (M.equity_rules && M.equity_rules.warn_line) || 90, BLUE = 36, W = M.weights;
+// 负向/正向权益规则（依据学城《2026年10月城市外卖绩效考核方案-考核框架和关联权益》）
+const EQ = M.equity_rules || {};
 const DIST = D.districts;
 
 /* ---------------- 工具 ---------------- */
@@ -204,23 +206,40 @@ function renderTab2() {
   document.getElementById('prFill').style.width = (tp * 100).toFixed(2) + '%';
   document.getElementById('prPct').textContent = `${pct(tp)} (${M.data_date.slice(-2)}/${M.month_days})`;
 
-  const below = ROWS.filter(r => r.proc < FINE);
-  const warn = document.getElementById('kpiWarn');
-  if (below.length) {
-    warn.classList.remove('hidden');
-    warn.innerHTML = `<b>⚠️ 罚款风险：</b>${below.map(r => `${r.city}（${r.proc.toFixed(2)} 分）`).join('、')} `
-      + `低于 ${FINE} 分罚款线`;
-  } else {
-    warn.classList.remove('hidden');
-    warn.style.background = '#f2fbf3';
-    warn.style.borderColor = '#b7e4c1';
-    warn.style.color = '#2c6e35';
-    warn.innerHTML = `<b>✅ 罚款风险：无</b> —— 8 城过程指标得分 ${Math.min(...ROWS.map(r => r.proc)).toFixed(2)}~`
-      + `${Math.max(...ROWS.map(r => r.proc)).toFixed(2)} 分，全部 ≥ ${FINE} 分罚款线`;
-  }
+  // ---------- 负向/正向权益判定
+const warned = ROWS.filter(r => r.equity && r.equity.warn && !r.equity.exempt_eligible);
+const fined = ROWS.filter(r => r.equity && r.equity.fine && r.equity.fine_state === '触发');
+const relieved = ROWS.filter(r => r.equity && r.equity.fine && r.equity.relief);
+const warnBox = document.getElementById('kpiWarn');
+const parts = [];
+if (warned.length) {
+  parts.push(`<b>⚠️ 警告风险（模块得分 &lt; ${EQ.warn_line}分）：</b>`
+    + warned.map(r => `${r.city}（${r.equity.module_score.toFixed(2)}分 / ${r.grade || '--'}）`).join('、')
+    + `　→ 各触发 <b>1 个警告</b>${EQ.max_warn_total ? `（各模块累加，城市最多 ${EQ.max_warn_total} 个）` : ''}`);
+} else {
+  parts.push(`<b>✅ 警告风险：无</b> —— 8 城模块绩效得分均 ≥ ${EQ.warn_line} 分`
+    + `（最低 ${Math.min(...ROWS.map(r => r.equity.module_score)).toFixed(2)} 分）`);
+}
+if (fined.length) {
+  parts.push(`<b>💰 罚款触发：</b>` + fined.map(r => {
+    const amt = r.equity.fine_amount ? `${r.equity.fine_amount.toLocaleString('zh-CN')} 元` : '不罚款';
+    return `${r.city}（过程完成率 ${pct(r.equity.proc_rate, 1)} &lt; ${pct(EQ.fine_rate, 0)}，${r.grade} → ${amt}）`;
+  }).join('、'));
+} else {
+  parts.push(`<b>✅ 罚款触发：无</b> —— 8 城过程模块完成率均 ≥ ${pct(EQ.fine_rate, 0)}`);
+}
+if (relieved.length) {
+  parts.push(`<b>🛡️ 罚款减免：</b>${relieved.map(r =>
+    `${r.city}（结果 ${pct(r.equity.res_rate, 1)} ≥ ${pct(EQ.relief_result, 0)} 且过程 ${pct(r.equity.proc_rate, 1)} ≥ ${pct(EQ.relief_proc, 0)}）`
+  ).join('、')} → 本应触发但已减免`);
+}
+warnBox.innerHTML = parts.join('<br>');
+warnBox.style.background = (warned.length || fined.length) ? '#fff5f5' : '#f2fbf3';
+warnBox.style.borderColor = (warned.length || fined.length) ? '#f3c9c9' : '#b7e4c1';
+warnBox.style.color = (warned.length || fined.length) ? '#a3332f' : '#2c6e35';
 
-  renderKpiTables();
-  renderNotes();
+renderKpiTables();
+renderNotes();
 }
 
 /* 三张表：实际完成版 / 预估完成版 / 过程指标明细 —— 列与配色对齐原模板 */
@@ -330,6 +349,43 @@ function renderKpiTables() {
       <td class="${sc(r.proc, 36)}">${r.proc.toFixed(2)}</td></tr>`;
   }).join('');
 
+  // ④ 负向/正向权益
+  const thEq = `<thead><tr class="grp">
+      <th class="base" style="width:82px;">城市</th>
+      <th class="base" style="width:54px;">等级</th>
+      <th class="g-s1">结果得分<br>(满分48)</th>
+      <th class="g-sqs">过程得分<br>(满分72)</th>
+      <th class="g-sum">模块绩效得分<br>(满分120)</th>
+      <th class="g-p2">结果模块<br>完成率</th>
+      <th class="g-p2">过程模块<br>完成率</th>
+      <th class="g-s1">⚠️ 警告<br>(&lt;${EQ.warn_line}分)</th>
+      <th class="g-fine">💰 罚款<br>(过程&lt;${pct(EQ.fine_rate, 0)})</th>
+      <th class="g-fine">罚款金额</th>
+      <th class="g-sum">🛡️ 减免/豁免</th>
+    </tr></thead>`;
+  const tEq = ROWS.map(r => {
+    const e = r.equity;
+    const warnBad = e.warn && !e.warn_state.startsWith('已豁免');
+    const fineBad = e.fine_state === '触发';
+    const reliefTag = e.fine_state === '减免'
+      ? `<span style="color:#155f15;font-weight:700;">罚款减免</span>`
+      : (e.warn_state.startsWith('已豁免')
+        ? `<span style="color:#155f15;font-weight:700;">警告豁免(待核)</span>`
+        : (e.exempt_eligible ? `<span style="color:#1f50a0;">得分达豁免线</span>` : '<span class="ph">—</span>'));
+    return `<tr>
+      <td class="city">${esc(r.city)}</td>
+      <td class="tier">${esc(e.tier || '--')}</td>
+      <td class="${sc(e.res_score, 40)}">${e.res_score.toFixed(2)}</td>
+      <td class="${sc(e.proc_score, 57.6)}">${e.proc_score.toFixed(2)}</td>
+      <td class="${e.module_score >= EQ.warn_line ? 'sc-g' : 'sc-r'}">${e.module_score.toFixed(2)}</td>
+      <td class="${e.res_rate >= EQ.relief_result ? 'cv-g' : 'cv-0'}">${pct(e.res_rate, 1)}</td>
+      <td class="${e.proc_rate >= EQ.fine_rate ? 'cv-g' : 'cv-o'}">${pct(e.proc_rate, 1)}</td>
+      <td class="${warnBad ? 'rt-r' : 'rt-g'}">${warnBad ? '触发 1 个' : e.warn_state}</td>
+      <td class="${fineBad ? 'rt-r' : 'rt-g'}">${fineBad ? '触发' : (e.fine_state === '减免' ? '触发(已减免)' : '不触发')}</td>
+      <td class="${fineBad ? 'rt-r' : 'ph'}">${fineBad ? e.fine_amount.toLocaleString('zh-CN') : '—'}</td>
+      <td>${reliefTag}</td></tr>`;
+  }).join('');
+
   document.getElementById('kpiTables').innerHTML = `
     <div class="section-h">
       <span class="left">📊 实际完成版</span>
@@ -344,8 +400,11 @@ function renderKpiTables() {
     </div>
     <div class="fc-section" style="padding:0 18px;"><table class="dash">${th2()}<tbody>${t2}</tbody></table></div>
 
-    <div class="sub-cap">过程指标明细（②③ 上线/达标取自货盘明细去重表；④ 取考核期 ${M.p3_first.slice(5)} 起日均覆盖率）</div>
-    <div style="padding:0 18px;"><table class="dash">${th3}<tbody>${t3}</tbody></table></div>`;
+    <div class="sub-cap">过程指标明细（②③ 目标池取自官方考核目标表，达标数取自货盘明细去重表；④ 取考核期 ${M.p3_first.slice(5)} 起日均覆盖率）</div>
+    <div style="padding:0 18px;"><table class="dash">${th3}<tbody>${t3}</tbody></table></div>
+
+    <div class="sub-cap" style="color:#c0392b;">⚠️ 负向权益与减免判定（依据《2026年10月城市外卖绩效考核方案-考核框架和关联权益》）</div>
+    <div style="padding:0 18px;"><table class="dash">${thEq}<tbody>${tEq}</tbody></table></div>`;
 }
 
 /* 口径说明 —— 沿用原模板 notes 样式 */
@@ -354,10 +413,15 @@ function renderNotes() {
   const sqs = ROWS.filter(r => r.sq_rate !== null);
   const phf = ROWS.filter(r => r.ph_rate !== null);
   const rng = a => `${pct(Math.min(...a.map(x => x.rate)))} ~ ${pct(Math.max(...a.map(x => x.rate)))}`;
+  const eq = EQ;
+  const tierRows = Object.keys(eq.fine_by_tier || {}).sort()
+    .map(t => `${t} ${(eq.fine_by_tier[t] || 0).toLocaleString('zh-CN')}元`).join('　');
 
   document.getElementById('notesBox').innerHTML =
     `<b>指标体系（10月）</b>：① PHF订单完成率 40% + ② 神抢手重点货盘商品达标率 30% `
     + `+ ③ 拼好饭重点货盘商品达标率 20% + ④ 商家参与优惠活动覆盖率 10%（过程指标合计 60%）。<br>`
+    + `<b>目标值来源</b>：<b>${M.src_target}</b>（下发商品池数量），`
+    + `达标率 = 明细表达标数 ÷ 官方下发商品池数；明细表行数与下发池数存在 2%~8% 差异（已留痕对比）。<br>`
     + `<b>S1</b>：得分 = 完成率 × 系数 × 40%；系数 &lt;80% = 0、≥80% = 1，完成率封顶 120%。<br>`
     + `<b>②③</b>：得分 = 达标率 × 系数 × 权重（②30%；③8城20% / 东兰凤山35%）；`
     + `系数 <b style="color:#9c1b1b">70-100% = 1.2、60-70% = 0.8、&lt;60% = 0</b>。<br>`
@@ -365,20 +429,32 @@ function renderNotes() {
     + `系数 <b style="color:#9c1b1b">60-100% = 1.2、50-60% = 1、30-50% = 0.8、&lt;30% = 0</b>；`
     + `覆盖率取「考核期累计日均」= ${M.p3_first.slice(5)}~${M.month_days} 各日 SKU 达标率的算术平均，`
     + `<b>未发生日期取已发生最新日期（${M.p3_last.slice(5)}）外推至月底</b>。<br>`
-    + `<b>过程指标完成率</b> = ②③④得分 ÷ 60；<b>罚款线 = ${FINE} 分（90%）</b>；`
-    + `<b>免罚规则</b>：过程完成率 ≥90% 直接免罚；<b>唯一豁免</b> = 结果指标完成率 ≥105% 且 过程指标完成率 ≥60%。<br>`
     + `<b>权重转移</b>：东兰县、凤山县无神抢手目标池，30% 转移给 ③（20%→35%）与 ④（10%→25%），过程权重合计仍为 60%。<br>`
-    + `<b>数据观察（截至 ${M.data_date}）</b>：S1 完成率 ${rng(ROWS)}，`
+
+    + `<b style="color:#c0392b">━━ 负向权益 ━━</b>（来源：2026年10月城市外卖绩效考核方案-考核框架和关联权益）<br>`
+    + `<b>模块绩效得分</b> = 结果指标合计得分 + 过程指标合计得分（满分 40×1.2 + 60×1.2 = 120分）。<br>`
+    + `<b>① 警告</b>：模块绩效得分 &lt; <b style="color:#9c1b1b">${eq.warn_line} 分</b> → 触发 <b>1 个警告</b>；`
+    + `各业务模块间处罚累加，城市最多 <b>${eq.max_warn_total} 个警告</b>。<br>`
+    + `<b>② 罚款</b>：过程指标模块完成率 &lt; <b style="color:#9c1b1b">${pct(eq.fine_rate, 0)}</b> → 触发对应城市等级罚款。<br>`
+    + `　　完成率 = 过程指标合计得分 ÷（过程权重合计 ${(60 * 1.2).toFixed(0)}）；罚款金额按等级：${tierRows || '—'}`
+    + `${(eq.fine_by_tier && eq.fine_by_tier.G3 === 0) ? '（G3 未在方案中列示，按不罚款处理）' : ''}。<br>`
+    + `<b>③ 罚款减免</b>：同时满足 ①结果模块完成率 ≥<b>${pct(eq.relief_result, 0)}</b> ②过程模块完成率 ≥<b>${pct(eq.relief_proc, 0)}</b> → 当月生效。<br>`
+    + `<b>④ 警告豁免</b>：模块月均绩效得分 ≥<b>${eq.exempt_score} 分</b>，`
+    + `且需位于季度内同等级城市前 <b>${pct(eq.exempt_top_pct, 0)}</b>（本报告仅能判定得分条件，前 5% 需全区域历史数据，标记待核）。<br>`
+
+    + `<b style="color:#1d6b1d">━━ 数据观察（截至 ${M.data_date}）━━</b><br>`
+    + `S1 完成率 ${rng(ROWS)}，`
     + (s1fail.length
-      ? `<b style="color:#9c1b1b">${s1fail.length} 城低于 80% 系数线（${s1fail.map(r => r.city).join('、')}）→ 得分归 0</b>，是本月最大失分点`
+      ? `<b style="color:#9c1b1b">${s1fail.length} 城低于 80% 系数线（${s1fail.map(r => r.city).join('、')}）→ 得分归 0</b>，是本月最大失分项`
       : `<b style="color:#155f15">8 城全部 ≥80% 系数线</b>`)
     + `；神抢手货盘 ${rng(sqs)}，拼好饭货盘 ${rng(phf)}；`
     + `P3 已回填 <b>${M.p3_days}</b> 天（最新 ${M.p3_last.slice(5)}）。`;
 
   document.getElementById('footerBox').innerHTML =
-    `数据来源：⑥【商品绩效】-拼好饭+神枪手（拼好饭-底表）＋下沉神抢手_货盘明细_去重`
-    + `＋下沉拼好饭货盘_结算价做功商品池明细（数据截至 ${M.data_date}） ｜ 生成时间 ${M.generated}`
-    + ` ｜ 由 AI 生成，仅供参考，以业务系统为准。`;
+    `数据来源：${M.src_target}（考核目标）＋⑥【商品绩效】-拼好饭+神枪手（拼好饭-底表）`
+    + `＋下沉神抢手_货盘明细_去重＋下沉拼好饭货盘_结算价做功商品池明细（数据截至 ${M.data_date}）`
+    + ` ｜ 考核规则：2026年10月城市绩效考核方案-拼好饭&神抢手业务 ＋ 考核框架和关联权益`
+    + ` ｜ 生成时间 ${M.generated} ｜ 由 AI 生成，仅供参考，以业务系统为准。`;
 }
 
 /* ============================================================
