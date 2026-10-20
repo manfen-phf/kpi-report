@@ -761,9 +761,12 @@ def build():
         if c in NO_SQS:
             esq = None
         else:
-            # 预估完成版②：预估达标率 = 当前上线率 − 10pp（按上线商品的达成折损估计）
+            # 预估完成版②：预估达标率 = 【重点货盘（神抢手P1）上线率】− 10pp
+            # 依据原模板 legacy：预估达标率 = 上线率 − 10%（上线商品的达成折损估计）
+            #   例：玉林 上线率 77.14% → 预估达标率 67.14%（系数 0.8）
             pool = sq_pool
-            r2 = max((sq_rate or 0) - EST_SQS_DROP, 0) if sq_rate is not None else None
+            base = sq_onrate
+            r2 = max(base - EST_SQS_DROP, 0) if base is not None else None
             ok2 = round(r2 * pool) if r2 is not None else 0
             k2 = coef(r2, HP_COEF)
             esq = dict(pool=pool, ok=ok2, rate=r2, k=k2,

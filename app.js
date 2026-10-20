@@ -357,12 +357,14 @@ function renderKpiTables() {
       <th class="g-sqs" colspan="5">重点货盘（汇总）</th>
       <th class="g-sqs" colspan="5">重点货盘（神抢手 P1）</th>
       <th class="g-phf" colspan="5">重点货盘（拼好饭 P2）</th>
+      <th class="g-p2" colspan="3">④ P3 商家优惠活动覆盖率</th>
       <th class="g-sum" rowspan="2" style="width:96px;">过程指标得分</th>
     </tr>
     <tr class="sub">
       <th class="sqs">目标数</th><th class="sqs">上线数</th><th class="sqs">上线率</th><th class="sqs">达标数</th><th class="sqs">达标率</th>
       <th class="sqs">目标数</th><th class="sqs">上线数</th><th class="sqs">上线率</th><th class="sqs">达标数</th><th class="sqs">达标率</th>
       <th class="phf">目标数</th><th class="phf">上线数</th><th class="phf">上线率</th><th class="phf">达标数</th><th class="phf">达标率</th>
+      <th class="p2">目标数</th><th class="p2">达标数</th><th class="p2">覆盖率</th>
     </tr></thead>`;
 
   // 五字段单元格组：目标数取官方下发池，上线/达标取明细表
@@ -386,11 +388,17 @@ function renderKpiTables() {
       ? `<td class="nc" colspan="5">不考核</td>`
       : fiveCells(sqPool, r.hp.SQS.on, r.hp.SQS.ok);
 
+    // ④ P3：目标数取官方下发池，达标数「—」（原模板口径），覆盖率取考核期日均
+    const p3Pool = T.p3 || r.p3_meta.pool;
+    const p3Cells = `<td>${fmt(p3Pool)}</td><td class="ph">—</td>`
+      + `<td class="${sc(r.p3_rate, 0.6)}">${pct(r.p3_rate)}</td>`;
+
     return `<tr>
       <td class="city">${esc(r.city)}</td>
       ${fiveCells(allPool, allOn, allOk)}
       ${sqCells}
       ${fiveCells(phPool, r.hp.PHF.on, r.hp.PHF.ok)}
+      ${p3Cells}
       <td class="${sc(r.proc, 36)}">${r.proc.toFixed(2)}</td></tr>`;
   }).join('');
 
@@ -403,12 +411,12 @@ function renderKpiTables() {
 
     <div class="section-h forecast">
       <span class="left">🔮 预估完成版</span>
-      <span class="sub">① 星期对星期外推；② 预估达标率＝当前上线率 −10pp；③ 按当前累计达标率；④ 按最新一日当日覆盖率外推至 ${M.month_days}/${M.month_days} 计月度日均；末列＝按预估值预判的负向权益</span>
+      <span class="sub">① 星期对星期外推；② 预估达标率＝重点货盘（神抢手P1）上线率 −10pp；③ 按当前累计达标率；④ 按最新一日当日覆盖率外推至 ${M.month_days}/${M.month_days} 计月度日均；末列＝按预估值预判的负向权益</span>
       <span class="tag">预估值</span>
     </div>
     <div class="fc-section" style="padding:0 18px;"><table class="dash">${th2(true)}<tbody>${t2}</tbody></table></div>
 
-    <div class="sub-cap">过程指标明细 · 三个货盘板块（上线 = 明细表 M 列「达标情况」=达标；达标 = N 列「攻克情况」=攻克，攻克记为达标 ｜ 按来源 E 列拆分：神抢手 = P1，拼好饭 = P2 ｜ ④ P3 取考核期 ${M.p3_first.slice(5)} 起日均覆盖率，见上方实率/预估完成版）</div>
+    <div class="sub-cap">过程指标明细 · 三个货盘板块 + ④ P3（上线 = 明细表 M 列「达标情况」=达标；达标 = N 列「攻克情况」=攻克，攻克记为达标 ｜ 按来源 E 列拆分：神抢手 = P1，拼好饭 = P2 ｜ ④ P3 覆盖率取考核期 ${M.p3_first.slice(5)} 起日均）</div>
     <div style="padding:0 18px;"><table class="dash">${th3}<tbody>${t3}</tbody></table></div>`;
 }
 
