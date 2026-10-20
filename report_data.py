@@ -474,11 +474,12 @@ def read_p3():
 
 
 def p3_series(p3):
-    """P3 考核期（10/8-10/31）每日序列 + 月度日均覆盖率
+    """P3 考核期（10/8-10/31）每日序列 + 两种日均覆盖率
 
     对齐原模板口径：
-      月度日均覆盖率 = [考核期已观测各日覆盖率之和 + 剩余天数 × 最新一日当日覆盖率] ÷ 考核期总天数
-    即：已发生日用实测值，未发生日统一按「最新一日」当日覆盖率外推填满至 10/31。
+      · 实际完成版 ④ = 考核期**已观测各日**覆盖率的算术平均
+      · 预估完成版 ④ = [已观测各日之和 + 剩余天数 × 最新一日当日覆盖率] ÷ 考核期总天数
+        （即以最新一日当日覆盖率外推填满考核期至 10/31）
     """
     daily, last = p3['daily'], p3['last']
     total_days = (P3_END - P3_START).days + 1        # 考核期总天数（10/8~10/31 = 24 天）
@@ -496,17 +497,20 @@ def p3_series(p3):
             out[c].append(src.get(c))
         d += datetime.timedelta(days=1)
 
-    # 月度日均 = (已观测之和 + 剩余天数 × 最新一日) / 总天数
+    # 预估版月度日均 = (已观测之和 + 剩余天数 × 最新一日) / 总天数
     avg = {}
+    # 实际版：仅已观测日的算术平均
+    avg_obs = {}
     for c in CITIES:
         latest = daily[last].get(c)
+        observed = [daily[dt].get(c) for dt in sorted(daily) if daily[dt].get(c) is not None]
+        avg_obs[c] = (sum(observed) / len(observed)) if observed else None
         if latest is None:
             v = [x for x in out[c] if x is not None]
             avg[c] = sum(v) / len(v) if v else None
             continue
-        observed = [daily[dt].get(c) for dt in sorted(daily) if daily[dt].get(c) is not None]
         avg[c] = (sum(observed) + remain_cnt * latest) / total_days if total_days else None
-    return days, out, avg
+    return days, out, avg, avg_obs
 
 
 # ============================================ 分区维度（复刻原模板「分区进度」板块）
@@ -673,6 +677,7 @@ def assess_equity(score_result, score_proc, tier, n_warn_modules=0):
         relief=relief, relief_rate=RELIEF_RESULT, relief_proc_rate=RELIEF_PROC,
 exempt_line=EXEMPT_SCORE,
             tier=str(tier or '').strip(),
+            fine_by_tier_zero=(fine_rate_raw == 0),
         )
 
 
@@ -681,7 +686,7 @@ def build():
     s1 = read_s1()
     city_hp, shops, srcs, hp_dist = read_hp()
     p3 = read_p3()
-    p3_days, p3_ser, p3_avg = p3_series(p3)
+    p3_days, p3_ser, p3_avg, p3_avg_obs = p3_series(p3)
     proj = project_s1(s1)
     last_d = s1['last']
     districts = build_districts(s1['dist'], hp_dist, p3)
@@ -724,13 +729,20 @@ def build():
         ph_k = coef(ph_rate, HP_COEF)
         ph_score = ph_rate * ph_k * W[c]['PHF'] if ph_rate is not None else 0
 
+        # ④ P3：实际版用「已观测日算术平均」，预估版用「最新一日外推填满考核期」
+        p3r_act = p3_avg_obs[c]
         p3r = p3_avg[c]
         p3_pool_mine = p3['meta'][p3['last']].get(c, {}).get('pool')
         p3_pool = T.get('tgt_p3') or p3_pool_mine
+        # 实际版
+        p3_k_act = coef(p3r_act, P3_COEF)
+        p3_score_act = (p3r_act or 0) * p3_k_act * W[c]['P3']
+        # 预估版
         p3_k = coef(p3r, P3_COEF)
         p3_score = (p3r or 0) * p3_k * W[c]['P3']
+        p3_ok = p3['meta'][p3['last']].get(c, {}).get('ok')
 
-        proc = (sq_score or 0) + ph_score + p3_score
+        proc = (sq_score or 0) + ph_score + p3_score_act
         pw = W[c]['SQS'] + W[c]['PHF'] + W[c]['P3']
 
         # 月末预估
@@ -749,10 +761,13 @@ def build():
                        score=(r2 * k2 * W[c]['SQS']) if r2 else 0)
         est = (esq['score'] if esq else 0) + ph_score + p3_score
 
+        # ★ 绩效总得分 = ① 结果指标得分 + ②③④ 过程指标得分（= 过程得分）
+        total = s1_score + proc
+        est_total = ps + est
+
         # ★ 负向/正向权益判定：实际版（当前实际值触发）+ 预估版（按预估值预判月末）
         equity = assess_equity(s1_score, proc, m.get('grade'))
         equity_est = assess_equity(ps, est, m.get('grade'))
-
         rows.append(dict(
             city=c, grade=m.get('grade'), mgr=m.get('mgr'),
             tgt=tgt, cur=cur, rate=rate, s1_k=k1, s1_score=s1_score,
@@ -765,9 +780,11 @@ def build():
             sq_onrate=sq_onrate,
             ph_rate=ph_rate, ph_k=ph_k, ph_score=ph_score,
             ph_onrate=ph_onrate,
-            p3_rate=p3r, p3_k=p3_k, p3_score=p3_score,
+            p3_rate=p3r_act, p3_k=p3_k_act, p3_score=p3_score_act,
+            p3_rate_est=p3r, p3_k_est=p3_k, p3_score_est=p3_score, p3_ok_est=p3_ok,
             p3_meta=p3['meta'][p3['last']].get(c, {}),
             proc=proc, proc_w=pw, proc_pct=(proc / pw if pw else None),
+            total=total, est_total=est_total,
             est_proc=est, est_pct=(est / pw if pw else None),
             est_sq=esq,
             equity=equity,

@@ -46,8 +46,7 @@ function showMainTab(id, btn) {
   if (btn) btn.classList.add('active');
   const el = document.getElementById(id);
   if (el) el.classList.add('active');
-  if (id === 'tab2') requestAnimationFrame(renderOps);
-  // 同步 hash，便于分享深链；用 replaceState 避免污染历史记录
+  if (id === 'tab2') requestAnimationFrame(() => { });  // 同步 hash，便于分享深链；用 replaceState 避免污染历史记录
   if (location.hash.slice(1) !== id) history.replaceState(null, '', '#' + id);
 }
 
@@ -239,7 +238,6 @@ warnBox.style.borderColor = (warned.length || fined.length) ? '#f3c9c9' : '#b7e4
 warnBox.style.color = (warned.length || fined.length) ? '#a3332f' : '#2c6e35';
 
 renderKpiTables();
-renderNotes();
 }
 
 /* 三张表：实际完成版 / 预估完成版 / 过程指标明细 —— 列与配色对齐原模板 */
@@ -252,10 +250,9 @@ function th2(isEst) {
     <th class="g-sqs" colspan="5">② 神抢手重点货盘达标率（权重30%）</th>
     <th class="g-phf" colspan="5">③ 拼好饭重点货盘达标率（权重20%/35%）</th>
     <th class="g-p2" colspan="5">④ P3 商家优惠活动覆盖率（权重10%/25%）</th>
-    <th class="g-sum" rowspan="2" style="width:96px;">绩效总得分</th>
-    <th class="g-sum" rowspan="2" style="width:92px;">过程指标<br>完成率</th>
-    ${isEst ? `<th class="g-fine" rowspan="2" style="width:78px;">预测<br>警告</th>
-    <th class="g-fine" rowspan="2" style="width:92px;">预测罚款</th>` : ''}
+    <th class="g-sum" rowspan="2" style="width:92px;">绩效<br>总得分</th>
+    <th class="g-sum" rowspan="2" style="width:88px;">过程指标<br>完成率</th>
+    ${isEst ? `<th class="g-fine" rowspan="2" style="width:130px;">预测负向权益</th>` : ''}
   </tr>
   <tr class="sub">
     <th class="s1">目标数</th><th class="s1">完成</th><th class="s1">完成率</th><th class="s1">系数</th><th class="s1">得分</th>
@@ -270,7 +267,10 @@ function cellAct(r, isEst) {
   const rate = isEst ? r.proj_rate : r.rate;
   const k = isEst ? r.proj_score / (W[r.city]['S1'] * Math.min(rate || 1.2, 1.2) || 1) : r.s1_k;
   const score = isEst ? r.proj_score : r.s1_score;
+  const T = r.tgt_official || {};
 
+  // ② 神抢手：目标数统一用官方下发池
+  const sqPool = T.sqs || r.hp.SQS.pool;
   const sq = NO_SQS.has(r.city)
     ? `<td class="nc" colspan="5">不考核</td>`
     : (isEst
@@ -278,35 +278,51 @@ function cellAct(r, isEst) {
          <td class="${sc(r.est_sq.rate, 0.7)}">${pct(r.est_sq.rate)}</td>
          <td class="${scLow(r.est_sq.k, 1)}">${r.est_sq.k.toFixed(1)}</td>
          <td class="${sc(r.est_sq.score, 21)}">${r.est_sq.score.toFixed(2)}</td>`
-      : `<td>${fmt(r.hp.SQS.pool)}</td><td>${fmt(r.hp.SQS.ok)}</td>
+      : `<td>${fmt(sqPool)}</td><td>${fmt(r.hp.SQS.ok)}</td>
          <td class="${sc(r.sq_rate, 0.7)}">${pct(r.sq_rate)}</td>
          <td class="${scLow(r.sq_k, 1)}">${r.sq_k === null ? '—' : r.sq_k.toFixed(1)}</td>
          <td class="${sc(r.sq_score, 21)}">${r.sq_score === null ? '—' : r.sq_score.toFixed(2)}</td>`);
 
-  const ph = `<td>${fmt(r.hp.PHF.pool)}</td><td>${fmt(r.hp.PHF.ok)}</td>
+  // ③ 拼好饭：预估版按当前累计达标率（不外推），得分与实际版一致
+  const phPool = T.phf || r.hp.PHF.pool;
+  const ph = `<td>${fmt(phPool)}</td><td>${fmt(r.hp.PHF.ok)}</td>
     <td class="${sc(r.ph_rate, 0.7)}">${pct(r.ph_rate)}</td>
     <td class="${scLow(r.ph_k, 1)}">${r.ph_k === null ? '—' : r.ph_k.toFixed(1)}</td>
     <td class="${sc(r.ph_score, 14)}">${r.ph_score.toFixed(2)}</td>`;
 
-  const p3 = `<td>${fmt(r.p3_meta.pool)}</td><td>${fmt(r.p3_meta.ok)}</td>
-    <td class="${sc(r.p3_rate, 0.6)}">${pct(r.p3_rate)}</td>
-    <td class="${scLow(r.p3_k, 1)}">${r.p3_k === null ? '—' : r.p3_k.toFixed(1)}</td>
-    <td class="${sc(r.p3_score, 6)}">${r.p3_score.toFixed(2)}</td>`;
+  // ④ P3：预估版用「最新一日当日覆盖率外推至月底」的月度日均
+  const p3Pool = T.p3 || r.p3_meta.pool;
+  const p3Rate = isEst ? r.p3_rate_est : r.p3_rate;
+  const p3K = isEst ? r.p3_k_est : r.p3_k;
+  const p3Score = isEst ? r.p3_score_est : r.p3_score;
+  const p3Ok = isEst ? r.p3_ok_est : r.p3_meta.ok;
+  const p3 = `<td>${fmt(p3Pool)}</td><td>${fmt(p3Ok)}</td>
+    <td class="${sc(p3Rate, 0.6)}">${pct(p3Rate)}</td>
+    <td class="${scLow(p3K, 1)}">${p3K === null ? '—' : p3K.toFixed(1)}</td>
+    <td class="${sc(p3Score, 6)}">${p3Score === null ? '—' : p3Score.toFixed(2)}</td>`;
 
+  // 过程指标得分 / 完成率
   const proc = isEst ? r.est_proc : r.proc;
   const procPct = isEst ? r.est_pct : r.proc_pct;
+  // 绩效总得分 = ① 结果指标得分 + ②③④ 过程指标得分
+  const total = isEst ? r.est_total : r.total;
 
-  // 预估完成版末两列 = 按预估值预判的月末负向权益
+  // 预估完成版末列 = 预测负向权益（原模板为单列：是否触发警告 / 罚款金额）
   let eqCols = '';
   if (isEst && r.equity_est) {
     const e = r.equity_est;
     const warnBad = e.warn && !e.exempt_eligible;
     const fineBad = e.fine_state === '触发';
-    const fineTxt = fineBad
-      ? (e.relief ? '触发·减免' : '触发')
-      : (e.fine_state === '减免' ? '触发·减免' : '不触发');
-    eqCols = `<td class="${warnBad ? 'rt-r' : 'rt-g'}">${warnBad ? '触发' : '无'}</td>
-      <td class="${fineBad ? 'rt-r' : 'rt-g'}">${fineTxt}${fineBad ? ` ${e.fine_amount.toLocaleString('zh-CN')}` : ''}</td>`;
+    const noFine = (e.fine_by_tier_zero) || (e.tier || '').toUpperCase() === 'G3';
+    let txt;
+    if (noFine) {
+      txt = warnBad ? '警告（不涉及罚款）' : '不涉及';
+    } else if (fineBad) {
+      txt = (warnBad ? '警告 · ' : '') + `罚款 ¥${e.fine_amount.toLocaleString('zh-CN')}`;
+    } else {
+      txt = warnBad ? '警告（免罚）' : '免罚';
+    }
+    eqCols = `<td class="${fineBad ? 'rt-r' : (warnBad ? 'rt-y' : 'rt-g')}">${txt}</td>`;
   }
 
   return `<td class="city">${esc(r.city)}</td>
@@ -316,7 +332,7 @@ function cellAct(r, isEst) {
     <td class="${scLow(k, 1)}">${k === null || Number.isNaN(k) ? '—' : k.toFixed(1)}</td>
     <td class="${sc(score, 32)}">${score === null || Number.isNaN(score) ? '—' : score.toFixed(2)}</td>
     ${sq}${ph}${p3}
-    <td class="${sc(proc, 36)}">${proc.toFixed(2)}</td>
+    <td class="${sc(total, 80)}">${total === null || total === undefined ? '—' : total.toFixed(2)}</td>
     <td class="${sc(procPct, 0.6)}">${pct(procPct, 1)}</td>${eqCols}`;
 }
 
@@ -373,43 +389,6 @@ function renderKpiTables() {
       <td class="${sc(r.proc, 36)}">${r.proc.toFixed(2)}</td></tr>`;
   }).join('');
 
-  // ④ 负向/正向权益
-  const thEq = `<thead><tr class="grp">
-      <th class="base" style="width:82px;">城市</th>
-      <th class="base" style="width:54px;">等级</th>
-      <th class="g-s1">结果得分<br>(满分48)</th>
-      <th class="g-sqs">过程得分<br>(满分72)</th>
-      <th class="g-sum">模块绩效得分<br>(满分120)</th>
-      <th class="g-p2">结果模块<br>完成率</th>
-      <th class="g-p2">过程模块<br>完成率</th>
-      <th class="g-s1">⚠️ 警告<br>(&lt;${EQ.warn_line}分)</th>
-      <th class="g-fine">💰 罚款<br>(过程&lt;${pct(EQ.fine_rate, 0)})</th>
-      <th class="g-fine">罚款金额</th>
-      <th class="g-sum">🛡️ 减免/豁免</th>
-    </tr></thead>`;
-  const tEq = ROWS.map(r => {
-    const e = r.equity;
-    const warnBad = e.warn && !e.warn_state.startsWith('已豁免');
-    const fineBad = e.fine_state === '触发';
-    const reliefTag = e.fine_state === '减免'
-      ? `<span style="color:#155f15;font-weight:700;">罚款减免</span>`
-      : (e.warn_state.startsWith('已豁免')
-        ? `<span style="color:#155f15;font-weight:700;">警告豁免(待核)</span>`
-        : (e.exempt_eligible ? `<span style="color:#1f50a0;">得分达豁免线</span>` : '<span class="ph">—</span>'));
-    return `<tr>
-      <td class="city">${esc(r.city)}</td>
-      <td class="tier">${esc(e.tier || '--')}</td>
-      <td class="${sc(e.res_score, 40)}">${e.res_score.toFixed(2)}</td>
-      <td class="${sc(e.proc_score, 57.6)}">${e.proc_score.toFixed(2)}</td>
-      <td class="${e.module_score >= EQ.warn_line ? 'sc-g' : 'sc-r'}">${e.module_score.toFixed(2)}</td>
-      <td class="${e.res_rate >= EQ.relief_result ? 'cv-g' : 'cv-0'}">${pct(e.res_rate, 1)}</td>
-      <td class="${e.proc_rate >= EQ.fine_rate ? 'cv-g' : 'cv-o'}">${pct(e.proc_rate, 1)}</td>
-      <td class="${warnBad ? 'rt-r' : 'rt-g'}">${warnBad ? '触发 1 个' : e.warn_state}</td>
-      <td class="${fineBad ? 'rt-r' : 'rt-g'}">${fineBad ? '触发' : (e.fine_state === '减免' ? '触发(已减免)' : '不触发')}</td>
-      <td class="${fineBad ? 'rt-r' : 'ph'}">${fineBad ? e.fine_amount.toLocaleString('zh-CN') : '—'}</td>
-      <td>${reliefTag}</td></tr>`;
-  }).join('');
-
   document.getElementById('kpiTables').innerHTML = `
     <div class="section-h">
       <span class="left">📊 实际完成版</span>
@@ -419,273 +398,28 @@ function renderKpiTables() {
 
     <div class="section-h forecast">
       <span class="left">🔮 预估完成版</span>
-      <span class="sub">① 星期对星期外推；② 预估达标率＝当前上线率 −10pp；③ 按当前累计达标率；④ 按最新一日当日覆盖率外推至 ${M.month_days}/${M.month_days} 计月度日均；末两列＝按预估值预判的负向权益</span>
+      <span class="sub">① 星期对星期外推；② 预估达标率＝当前上线率 −10pp；③ 按当前累计达标率；④ 按最新一日当日覆盖率外推至 ${M.month_days}/${M.month_days} 计月度日均；末列＝按预估值预判的负向权益</span>
       <span class="tag">预估值</span>
     </div>
     <div class="fc-section" style="padding:0 18px;"><table class="dash">${th2(true)}<tbody>${t2}</tbody></table></div>
 
     <div class="sub-cap">过程指标明细 · 三个货盘板块（上线 = 明细表 M 列「达标情况」=达标；达标 = N 列「攻克情况」=攻克，攻克记为达标 ｜ 按来源 E 列拆分：神抢手 = P1，拼好饭 = P2 ｜ ④ P3 取考核期 ${M.p3_first.slice(5)} 起日均覆盖率，见上方实率/预估完成版）</div>
-    <div style="padding:0 18px;"><table class="dash">${th3}<tbody>${t3}</tbody></table></div>
-
-    <div class="sub-cap" style="color:#c0392b;">⚠️ 负向权益与减免判定（依据《2026年10月城市外卖绩效考核方案-考核框架和关联权益》）</div>
-    <div style="padding:0 18px;"><table class="dash">${thEq}<tbody>${tEq}</tbody></table></div>`;
+    <div style="padding:0 18px;"><table class="dash">${th3}<tbody>${t3}</tbody></table></div>`;
 }
 
-/* 口径说明 —— 沿用原模板 notes 样式 */
-function renderNotes() {
-  const s1fail = ROWS.filter(r => r.rate && r.rate < 0.8);
-  const sqs = ROWS.filter(r => r.sq_rate !== null);
-  const phf = ROWS.filter(r => r.ph_rate !== null);
-  const rng = a => `${pct(Math.min(...a.map(x => x.rate)))} ~ ${pct(Math.max(...a.map(x => x.rate)))}`;
-  const eq = EQ;
-  const dayN = Number(M.data_date.slice(-2));
-  const procVals = ROWS.map(r => r.proc);
-  const procLo = Math.min(...procVals), procHi = Math.max(...procVals);
-  const p3vals = ROWS.map(r => r.p3_rate).filter(v => v !== null);
-  const p3Lo = Math.min(...p3vals), p3Hi = Math.max(...p3vals);
-  const fineList = ROWS.filter(r => r.equity && r.equity.fine_state === '触发')
-    .map(r => `${r.city} ${r.proc.toFixed(2)}`);
-  const tierRows = Object.keys(eq.fine_by_tier || {}).sort()
-    .map(t => `${t} ¥${(eq.fine_by_tier[t] || 0).toLocaleString('zh-CN')}`).join('　');
 
-  document.getElementById('notesBox').innerHTML =
-    `<b>指标体系（10月）</b>：① PHF订单完成率 40% ＋ ② 神抢手重点货盘商品达标率 30% ＋ ③ 拼好饭重点货盘商品达标率 20% ＋ ④ 商家参与优惠活动覆盖率 10%（过程指标合计 60%）。<br>`
-    + `<b>①S1</b>：得分=完成率×系数×40%×100；系数 &lt;80%=0、≥80%=1；封顶 120%。<br>`
-    + `<b>②神抢手货盘 ／ ③拼好饭货盘</b>：得分=达标率×系数×权重（②30%；③8城20%/东兰凤山35%）×100；`
-    + `②系数（10月新调整）<b style="color:#9c1b1b">70-100%=1.2、60-70%=0.8、&lt;60%=0</b>（满系数线由 9 月的 60% 提高至 70%）；`
-    + `③系数 <b style="color:#9c1b1b">60-100%=1.2、50-60%=1、30-50%=0.8、&lt;30%=0</b>。<br>`
-    + `<b>★②③达标口径（本看板取数）</b>：上线数 = 货盘明细 <b>M 列「达标情况」=达标</b>；`
-    + `<b>达标数 = N 列「攻克情况」=攻克</b>（攻克记为达标）。`
-    + `达标率 = 达标数 ÷ 官方下发商品池数；上线率 = 上线数 ÷ 目标数。`
-    + `按 <b>E 列「来源」</b> 拆分：神抢手 = <b>P1</b>，拼好饭 = <b>P2</b>。<br>`
-    + `<b>官方达标条件</b>：需招商上线在售，且 神抢手商品 全月累计订单≥3单且 GTV≥40元 ／ 拼好饭商品 全月累计订单≥5单且 GTV≥60元。<br>`
-    + `<b>④P3</b>：得分=日均覆盖率×系数×权重（8城10%/东兰凤山25%）×100；`
-    + `系数 <b style="color:#9c1b1b">60-100%=1.2、50-60%=1、30-50%=0.8、&lt;30%=0</b>；达标口径 = 当前结算价≤目标结算价。`
-    + `覆盖率取「考核期累计日均」= 考核期（${M.p3_first.slice(5)}–${M.month_days}/${M.month_days}）内各日达标率的算术平均；`
-    + `考核期未启动前（数据 ≤10/7）只展示当日达标率、系数/得分自 ${M.p3_first.slice(5)} 起算。<br>`
-    + `<b>目标值来源</b>：${M.src_target}（下发商品池数量）；达标率 = 明细表达标数 ÷ 官方下发商品池数，`
-    + `明细表行数与下发池数存在 2%~8% 差异（已在数据层并列留痕）。<br>`
-    + `<b>权重转移</b>：东兰县、凤山县无神抢手目标池，30% 转移给 ③拼好饭货盘(+15%→35%) 与 ④P3(+15%→25%)，过程权重合计仍为 60%。<br>`
-    + `<b>过程指标完成率</b> = ②③④得分 ÷ 60（过程权重满分 60）；罚款线 = 54 分（90%）；`
-    + `免罚规则：过程完成率≥90% 直接免罚；唯一豁免 = 结果指标完成率 ≥105% 且 过程完成率 ≥60%。<br>`
 
-    + `<b style="color:#c0392b">━━ 负向权益（10月，口径与 9 月一致）━━</b><br>`
-    + `<b>警告线与罚款脱钩</b>：绩效总得分 &lt; <b style="color:#9c1b1b">${eq.warn_line}</b> → 触发警告（各模块累加，城市最多 ${eq.max_warn_total} 个）；<br>`
-    + `<b>罚款触发起点</b> = 过程指标完成率 &lt; <b style="color:#9c1b1b">90%</b>（即过程得分 &lt; 54 分／满分 60），`
-    + `唯一豁免 = 结果指标完成率 ≥105% 且 过程指标完成率 ≥60%（★结果指标 = ① S1 PHF订单完成率，非绩效总分）。<br>`
-    + `<b>罚款标准按城市等级</b>：${tierRows || '—'}；G3（东兰、凤山）不涉及罚款。<br>`
-    + `<b>警告豁免</b>：模块月均绩效得分 ≥${eq.exempt_score} 分，且需位于季度内同等级城市前 ${pct(eq.exempt_top_pct, 0)}`
-    + `（前 5% 需全区域历史数据，本看板标记「待核」）。<br>`
-    + `本表「实际完成版」为按当前实际值触发的<b>即时判定</b>；「预估完成版」末两列 = 按预估值预判的<b>月末结果</b>。<br>`
-
-    + `<b style="color:#1f3a63">━━ 预测说明（预估完成版口径）━━</b><br>`
-    + `<b>① S1 按星期对星期外推</b>：月末 = 实际累计（${M.data_date}）＋ 剩余每天按本月已有逐日窗口同星期当日订单量推算`
-    + `（缺样本的星期按当月日均兜底）。<br>`
-    + `<b>② 神抢手预估达标率 = 当前上线率 − 10pp</b>（按上线商品的达成折损估计），再按 ② 系数规则与 30% 权重计分。<br>`
-    + `<b>③ 拼好饭预估达标率 = 当前累计达标率</b>（不外推），按 ③ 系数规则与权重计分。<br>`
-    + `<b>④ P3 以最新一日的当日覆盖率外推填满考核期至 ${M.month_days}/${M.month_days}</b>`
-    + `（月度日均覆盖率 = ［考核期已观测各日覆盖率之和 ＋ 剩余天数 × 最新一日当日覆盖率］÷ 考核期 24 天），再按 ④ 系数规则计分；`
-    + `覆盖率分母 = 当日下发池 SKU 数，逐日变化，故预估版「达标数」列沿用最新一日的达标 SKU 数。<br>`
-
-    + `<b style="color:#1d6b1d">━━ 数据说明（截至 ${M.data_date}）━━</b><br>`
-    + `① 考核已进行 <b>${dayN}</b> 天（时间进度 <b>${pct(M.time_pct)}</b>），S1完成率 ${rng(ROWS)}，`
-    + (s1fail.length
-      ? `<b style="color:#9c1b1b">${s1fail.length} 城低于 80% 系数线（${s1fail.map(r => r.city).join('、')}）→ ① 得分全部为 0</b>（月末按累计完成率定档）`
-      : `<b style="color:#155f15">8 城全部高于 80% 系数线</b>`)
-    + `；② 神抢手货盘达标率 ${rng(sqs)}（东兰/凤山不考核）；③ 拼好饭货盘达标率 ${rng(phf)}；`
-    + `④ P3 考核期已跑 <b>${M.p3_days}</b> 天（${M.p3_first.slice(5)} 起），累计日均覆盖率 ${pct(p3Lo)}~${pct(p3Hi)}；`
-    + `过程指标完成率 ${pct(procLo / 60, 1)}~${pct(procHi / 60, 1)}%（过程得分÷60）。`
-    + (fineList.length
-      ? `<b style="color:#9c1b1b">⚠️ ${fineList.length} 城过程得分低于罚款线 54 分</b>：${fineList.join('、')}。`
-      : `<b style="color:#155f15">8 城过程得分均 ≥54 分罚款线</b>。`)
-    + `<br>口径沿革：10月起 ② 满系数线由 60% 上调至 70%；③ 由 9 月的「PHF 拼好饭货盘攻克率」调整为「拼好饭重点货盘商品达标率」，与 ② 统一为「上线在售 ＋ 单量/GTV 双门槛」口径。`;
-
-  document.getElementById('footerBox').innerHTML =
-    `数据来源：${M.src_target}（考核目标）＋⑥【商品绩效】-拼好饭+神枪手（拼好饭-底表）`
-    + `＋下沉神抢手_货盘明细_去重＋下沉拼好饭货盘_结算价做功商品池明细（数据截至 ${M.data_date}）`
-    + ` ｜ 考核规则：2026年10月城市绩效考核方案-拼好饭&神抢手业务 ＋ 考核框架和关联权益`
-    + ` ｜ 生成时间 ${M.generated} ｜ 由 AI 生成，仅供参考，以业务系统为准。`;
-}
-
-/* ============================================================
-   TAB 2 下钻：图表 + 商家明细
-   ============================================================ */
-let curCity = CITIES[0], curBiz = 'SQS', shopSort = 'ord', shopKw = '';
-
-const NS = 'http://www.w3.org/2000/svg';
-function el(tag, a) {
-  const e = document.createElementNS(NS, tag);
-  for (const k in a) if (a[k] !== null && a[k] !== undefined) e.setAttribute(k, a[k]);
-  return e;
-}
-
-function barChart(id, cfg) {
-  const host = document.getElementById(id);
-  if (!host) return;
-  host.innerHTML = '';
-  const W = host.clientWidth || 520, H = cfg.height || 240;
-  const pad = { t: 14, r: 12, b: 46, l: 42 };
-  const iw = W - pad.l - pad.r, ih = H - pad.t - pad.b;
-  const svg = el('svg', { viewBox: `0 0 ${W} ${H}`, height: H });
-
-  const all = cfg.series.flatMap(s => s.values.filter(v => v !== null && v !== undefined));
-  const yMax = cfg.yMax || Math.max(...all, 0) * 1.2 || 1;
-  const nS = cfg.series.length, nC = cfg.cats.length;
-  const gw = iw / Math.max(nC, 1);
-  const bw = Math.min(cfg.barW || 26, (gw * 0.7) / nS);
-
-  for (let i = 0; i <= 4; i++) {
-    const y = pad.t + ih - ih * i / 4;
-    svg.appendChild(el('line', { x1: pad.l, y1: y, x2: W - pad.r, y2: y, stroke: '#e3e8ef' }));
-    const t = el('text', { x: pad.l - 6, y: y + 3.5, 'font-size': 9.5, fill: '#889', 'text-anchor': 'end' });
-    t.textContent = cfg.yFmt ? cfg.yFmt(yMax * i / 4) : fmt(yMax * i / 4);
-    svg.appendChild(t);
-  }
-  cfg.series.forEach((s, si) => {
-    s.values.forEach((v, ci) => {
-      if (v === null || v === undefined) return;
-      const h = Math.max(1, ih * Math.min(1, v / yMax));
-      const cx = pad.l + gw * ci + gw / 2;
-      const x = cx - (bw * nS) / 2 + si * bw;
-      const y = pad.t + ih - h;
-      const r = el('rect', { x: x + 1, y: y, width: bw - 2, height: h, fill: s.color, rx: 2 });
-      r.appendChild(el('title')).textContent = `${cfg.cats[ci]} ${s.name}: ${cfg.vFmt ? cfg.vFmt(v) : fmt(v)}`;
-      svg.appendChild(r);
-      if (cfg.showValues && bw >= 14) {
-        const t = el('text', { x: x + bw / 2, y: y - 4, 'font-size': 9, fill: '#667', 'text-anchor': 'middle' });
-        t.textContent = cfg.vFmt ? cfg.vFmt(v, true) : fmt(v);
-        svg.appendChild(t);
-      }
-    });
-  });
-  cfg.cats.forEach((c, ci) => {
-    const ws = String(c).length > 5 ? String(c).match(/.{1,5}/g) : [c];
-    ws.forEach((w, wi) => {
-      const t = el('text', { x: pad.l + gw * ci + gw / 2, y: pad.t + ih + 14 + wi * 11, 'font-size': 9.5, fill: '#667', 'text-anchor': 'middle' });
-      t.textContent = w;
-      svg.appendChild(t);
-    });
-  });
-  host.appendChild(svg);
-  if (nS > 1) {
-    const lg = document.createElement('div');
-    lg.className = 'legend';
-    lg.innerHTML = cfg.series.map(s => `<span><i style="background:${s.color}"></i>${s.name}</span>`).join('');
-    host.appendChild(lg);
-  }
-}
-
-function renderOps() {
-  const r = ROWS.find(x => x.city === curCity);
-  if (!r) return;
-
-  // 货盘来源细分
-  const sb = D.src_break[r.city] || {};
-  const keys = Object.keys(sb).sort((a, b) => sb[b].pool - sb[a].pool);
-  document.getElementById('srcCap').textContent =
-    `${r.city} ｜ 目标池=货盘明细行数，柱=目标池 SKU 数、绿=达标数`;
-  barChart('srcChart', {
-    cats: keys,
-    series: [
-      { name: '目标池', color: '#7c8fbf', values: keys.map(k => sb[k].pool) },
-      { name: '达标数', color: '#5aab7a', values: keys.map(k => sb[k].ok) }
-    ],
-    yFmt: v => fmt(v), vFmt: (v, sh) => sh ? fmt(v) : '', showValues: true, height: 250
-  });
-
-  // 做功场景
-  const scene = r.p3_meta.scene || {};
-  const sk = Object.keys(scene).sort((a, b) => scene[b] - scene[a]);
-  document.getElementById('sceneCap').textContent =
-    `${r.city} ｜ 基线 ${fmt(r.p3_meta.pool)} SKU ｜ 覆盖 ${fmt(r.p3_meta.shop)} 商家 ｜ 数据日 ${M.p3_last.slice(5)}`;
-  barChart('sceneChart', {
-    cats: sk.length ? sk : ['无数据'],
-    series: [{ name: '基线 SKU', color: '#c9892f', values: sk.length ? sk.map(k => scene[k]) : [0] }],
-    yFmt: v => fmt(v), vFmt: (v, sh) => sh ? fmt(v) : '', showValues: true, height: 250, barW: 34
-  });
-
-  renderShops();
-}
-
-function renderShops() {
-  const all = D.shops[`${curCity}|${curBiz}`] || [];
-  const kw = shopKw.trim().toLowerCase();
-  let data = kw ? all.filter(s =>
-    (s.name || '').toLowerCase().includes(kw) || (s.bd || '').toLowerCase().includes(kw)
-    || String(s.mid).includes(kw)) : all.slice();
-
-  const cmp = {
-    ord: (a, b) => b.ord - a.ord || b.amt - a.amt,
-    amt: (a, b) => b.amt - a.amt,
-    rate: (a, b) => a.rate - b.rate,
-    pool: (a, b) => b.pool - a.pool
-  }[shopSort];
-  data.sort(cmp);
-
-  document.getElementById('shopTable').innerHTML =
-    `<thead><tr><th style="width:48px;">#</th><th style="text-align:left;">商家名称</th>
-     <th>商家ID</th><th>BD MIS ID</th><th>货盘<br>SKU数</th><th>达标数</th>
-     <th>达标率</th><th>订单量</th><th>实付金额</th></tr></thead><tbody>`
-    + data.slice(0, 400).map((s, i) => `<tr>
-      <td style="color:#999;">${i + 1}</td>
-      <td class="nm" title="${esc(s.name)}">${esc(s.name) || '<span style="color:#bbb;">—</span>'}</td>
-      <td style="color:#889;">${esc(s.mid)}</td><td style="color:#889;">${esc(s.bd) || '—'}</td>
-      <td>${fmt(s.pool)}</td><td>${fmt(s.ok)}</td>
-      <td class="${sc(s.rate, 0.7)}">${pct(s.rate)}</td>
-      <td>${fmt(s.ord)}</td><td>${fmt(s.amt)}</td></tr>`).join('')
-    + '</tbody>';
-
-  document.getElementById('shopCount').innerHTML =
-    `<b>${curBiz === 'SQS' ? '神抢手' : '拼好饭'}</b> ｜ ${curCity} ｜ 共 <b>${fmt(all.length)}</b> 家商家`
-    + `${kw ? `，匹配 <b style="color:#667eea;">${fmt(data.length)}</b> 家` : ''}`
-    + `${data.length > 400 ? `，按当前排序显示前 <b>400</b> 家（完整清单可搜索缩小范围）` : ''}`;
-
-  document.getElementById('bizSqs').classList.toggle('on', curBiz === 'SQS');
-  document.getElementById('bizPhf').classList.toggle('on', curBiz === 'PHF');
-}
-function setBiz(b) { curBiz = b; renderShops(); }
-
-/* ---------------- 事件绑定 ---------------- */
-function bindTabs() {
-  document.getElementById('mb1').onclick = e => showMainTab('tab1', e.currentTarget);
-  document.getElementById('mb2').onclick = e => showMainTab('tab2', e.currentTarget);
-  document.getElementById('bizSqs').onclick = () => setBiz('SQS');
-  document.getElementById('bizPhf').onclick = () => setBiz('PHF');
-  window.addEventListener('hashchange', () => {
-    const h = location.hash.slice(1).split('=')[0];
-    if (h === 'tab1' && !document.getElementById('tab1').classList.contains('active')) {
-      showMainTab('tab1', document.getElementById('mb1'));
-    } else if (h === 'tab2' && !document.getElementById('tab2').classList.contains('active')) {
-      showMainTab('tab2', document.getElementById('mb2'));
-    }
-  });
-}
 
 /* ---------------- 启动 ---------------- */
-function bindOps() {
-  const sel = document.getElementById('citySel');
-  sel.innerHTML = CITIES.map(c => `<option value="${esc(c)}"${c === curCity ? ' selected' : ''}>${esc(c)}</option>`).join('');
-  sel.onchange = () => { curCity = sel.value; renderOps(); };
-
-  document.getElementById('sortSel').onchange = e => { shopSort = e.target.value; renderShops(); };
-  let t;
-  document.getElementById('shopSearch').oninput = e => {
-    clearTimeout(t); t = setTimeout(() => { shopKw = e.target.value; renderShops(); }, 220);
-  };
-}
-
 renderTab1();
 renderTab2();
-bindOps();
 bindTabs();
-window.addEventListener('resize', () => { if (document.getElementById('tab2').classList.contains('active')) renderOps(); });
 
-// 深链：#tab2 或 #tab2=玉林市
+// 深链：#tab1 或 #tab2
 (function initHash() {
   const h = decodeURIComponent(location.hash.slice(1));
   if (!h) return;
-  const [tab, city] = h.split('=');
-  if (city && CITIES.includes(city)) { curCity = city; document.getElementById('citySel').value = city; }
+  const tab = h.split(chr(61))[0];
   if (tab === 'tab1' || tab === 'tab2') showMainTab(tab, document.getElementById(tab === 'tab1' ? 'mb1' : 'mb2'));
 })();
 
