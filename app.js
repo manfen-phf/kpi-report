@@ -85,7 +85,12 @@ function renderFocusSelect() {
   sel.innerHTML = DIST.rows.map(r =>
     `<option value="${esc(r.name)}"${r.name === focusDist ? ' selected' : ''}>${esc(r.name)}</option>`
   ).join('');
-  sel.onchange = () => { focusDist = sel.value; renderDistCards(); };
+  sel.onchange = () => {
+    focusDist = sel.value;
+    renderFocusSelect();   // 同步刷新标题文字与下拉选中态
+    renderDistCards();
+    renderRankTable();
+  };
   document.getElementById('focusDist').textContent = focusDist || '—';
   document.getElementById('kpiDate').textContent =
     `${M.data_date.slice(0, 7).replace('-', '月')}日（10月试算·数据截至${M.data_date.slice(5)}）`;
@@ -409,6 +414,20 @@ function renderKpiTables() {
 
 
 
+
+/* Tab 切换绑定 */
+function bindTabs() {
+  document.getElementById('mb1').onclick = e => showMainTab('tab1', e.currentTarget);
+  document.getElementById('mb2').onclick = e => showMainTab('tab2', e.currentTarget);
+  window.addEventListener('hashchange', () => {
+    const h = location.hash.slice(1).split('=')[0];
+    if (h === 'tab1' && !document.getElementById('tab1').classList.contains('active')) {
+      showMainTab('tab1', document.getElementById('mb1'));
+    } else if (h === 'tab2' && !document.getElementById('tab2').classList.contains('active')) {
+      showMainTab('tab2', document.getElementById('mb2'));
+    }
+  });
+}
 
 /* ---------------- 启动 ---------------- */
 renderTab1();
