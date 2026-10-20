@@ -226,8 +226,8 @@ def project_s1(d):
     """
     trend, dates = d['trend'], d['dates']
     last = dates[-1]
-    last_i = len(dates) - 1
-    remain = MONTH_DAYS - last_i
+    # ★ 剩余天数 = 月总天数 − 数据日的**日号**（不是观测日个数）
+    remain = MONTH_DAYS - last.day
     if remain <= 0:
         return {c: (trend[last].get(c) or 0) for c in CITIES}
 
@@ -266,9 +266,18 @@ def project_s1(d):
         add = 0.0
         for k in range(1, remain + 1):
             dt = last + datetime.timedelta(days=k)
-            wd = dt.weekday()
-            samples = by_wd.get(wd) or []
-            add += statistics.mean(samples) if samples else fallback
+            # ★ 星期对星期：目标日往前推 7 天（同一星期几）取当日单量
+            #   如 10/19(周一) → 10/12、10/20(周二) → 10/13，依此类推
+            #   若 D-7 无数据，则继续按 14/21/28 天回退（仍是同一星期几）
+            #   全部回退无果时用近 7 天日均兜底
+            v = None
+            for back in (7, 14, 21, 28):
+                src = dt - datetime.timedelta(days=back)
+                row = daily.get(src) or {}
+                if c in row and row[c] is not None:
+                    v = row[c]
+                    break
+            add += v if v is not None else fallback
         out[c] = cur + add
     return out
 
