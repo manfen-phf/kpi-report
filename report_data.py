@@ -631,12 +631,13 @@ def assess_equity(score_result, score_proc, tier, n_warn_modules=0):
     """按学城《考核框架和关联权益》判定警告与罚款
 
     参数
-      score_result : 结果指标合计得分（满分 = 40 × 1.2 = 48）
-      score_proc   : 过程指标合计得分（满分 = 60 × 1.2 = 72）
+      score_result : 结果指标合计得分（权重 40，满分 40×1.2 = 48）
+      score_proc   : 过程指标合计得分（权重 60，满分 60×1.2 = 72）
       tier         : 城市等级，如 E1 / F2 / G3
     返回 dict：模块得分、完成率、警告、罚款、减免、豁免
 
     规则（原文）
+      · 完成率：结果 = 得分/40、过程 = 得分/60（分母为权重本身）
       · 警告：拼好饭&神抢手模块绩效得分 < 90 分 → 触发 1 个警告
       · 罚款：过程指标模块完成率 < 90% → 触发对应城市等级的罚款
       · 罚款减免：同时满足 ①结果模块完成率 ≥105% ②过程模块完成率 ≥60%
@@ -645,9 +646,12 @@ def assess_equity(score_result, score_proc, tier, n_warn_modules=0):
     """
     RES_W = 40.0      # 结果指标合计权重
     PRO_W = 60.0      # 过程指标合计权重
-    res_rate = (score_result / (RES_W * 1.2)) if score_result is not None else None
-    proc_rate = (score_proc / (PRO_W * 1.2)) if score_proc is not None else None
-    # 模块绩效得分 = 结果得分 + 过程得分（满分 40×1.2 + 60×1.2 = 120）
+    # ★ 完成率 = 合计得分 ÷ 合计权重（分母是权重本身，不是权重×1.2）
+    #   官方原文：完成率 = 合计得分 /（合计权重 × 100）
+    #   例：过程得分 32.47 ÷ 60 = 54.1%（与原模板显示一致）
+    res_rate = (score_result / RES_W) if score_result is not None else None
+    proc_rate = (score_proc / PRO_W) if score_proc is not None else None
+    # 模块绩效得分 = 结果得分 + 过程得分（上限 40×1.2 + 60×1.2 = 120）
     module_score = ((score_result or 0) + (score_proc or 0))
     module_w = RES_W + PRO_W
 
@@ -679,7 +683,7 @@ def assess_equity(score_result, score_proc, tier, n_warn_modules=0):
         res_score=score_result, proc_score=score_proc,
         res_rate=res_rate, proc_rate=proc_rate,
         module_score=module_score, module_max=module_w * 1.2,
-        module_rate=(module_score / (module_w * 1.2) if module_score is not None else None),
+        module_rate=(module_score / module_w if module_score is not None else None),
         warn=warn, warn_state=warn_state, exempt_eligible=exempt_eligible,
         warn_count=(1 if (warn and not exempt_eligible) else 0),
         fine=fine, fine_state=fine_state, fine_amount=(fine_rate_raw if fine else 0),

@@ -317,17 +317,25 @@ function cellAct(r, isEst) {
   if (isEst && r.equity_est) {
     const e = r.equity_est;
     const warnBad = e.warn && !e.exempt_eligible;
-    const fineBad = e.fine_state === '触发';
+    const fined = (e.fine_state === '触发');
+    const relieved = (e.fine_state === '减免');
     const noFine = (e.fine_by_tier_zero) || (e.tier || '').toUpperCase() === 'G3';
-    let txt;
+    let txt, cls;
     if (noFine) {
       txt = warnBad ? '警告（不涉及罚款）' : '不涉及';
-    } else if (fineBad) {
+      cls = warnBad ? 'rt-y' : 'rt-g';
+    } else if (fined) {
       txt = (warnBad ? '警告 · ' : '') + `罚款 ¥${e.fine_amount.toLocaleString('zh-CN')}`;
+      cls = 'rt-r';
+    } else if (relieved) {
+      // 满足「结果≥105% 且 过程≥60%」双条件 → 本应触发但当月减免
+      txt = (warnBad ? '警告 · ' : '') + '罚款减免（结果≥105% 且 过程≥60%）';
+      cls = 'rt-g';
     } else {
-      txt = warnBad ? '警告（免罚）' : '免罚';
+      txt = warnBad ? '警告（过程≥90% 免罚）' : '免罚';
+      cls = warnBad ? 'rt-y' : 'rt-g';
     }
-    eqCols = `<td class="${fineBad ? 'rt-r' : (warnBad ? 'rt-y' : 'rt-g')}">${txt}</td>`;
+    eqCols = `<td class="${cls}">${txt}</td>`;
   }
 
   return `<td class="city">${esc(r.city)}</td>
