@@ -327,36 +327,49 @@ function renderKpiTables() {
   // ② 预估完成版（浅米底 + 斜体，对齐原模板 fc-fore；末两列为按预估值预判的负向权益）
   const t2 = ROWS.map(r => `<tr style="background:#fdf6e9;">${cellAct(r, true)}</tr>`).join('');
 
-  // ③ 过程指标明细
+  // ③ 过程指标明细 —— 三个货盘板块统一：目标数/上线数/上线率/达标数/达标率
+  //    上线 = M 列「达标情况」=达标；达标 = N 列「攻克情况」=攻克
+  const FIVE = ['目标数', '上线数', '上线率', '达标数', '达标率'];
   const th3 = `<thead>
     <tr class="grp">
       <th class="base" rowspan="2" style="width:88px;">城市</th>
-      <th class="g-sqs" colspan="3">重点货盘（汇总）</th>
-      <th class="g-sqs" colspan="3">重点货盘（神抢手）</th>
-      <th class="g-phf" colspan="3">重点货盘（拼好饭）</th>
-      <th class="g-p2" colspan="4">④ P3 商家优惠活动覆盖率</th>
+      <th class="g-sqs" colspan="5">重点货盘（汇总）</th>
+      <th class="g-sqs" colspan="5">重点货盘（神抢手 P1）</th>
+      <th class="g-phf" colspan="5">重点货盘（拼好饭 P2）</th>
       <th class="g-sum" rowspan="2" style="width:96px;">过程指标得分</th>
     </tr>
     <tr class="sub">
-      <th class="sqs">目标池</th><th class="sqs">达标数</th><th class="sqs">达标率</th>
-      <th class="sqs">目标池</th><th class="sqs">达标数</th><th class="sqs">达标率</th>
-      <th class="phf">目标池</th><th class="phf">达标数</th><th class="phf">达标率</th>
-      <th class="p2">目标</th><th class="p2">达标</th><th class="p2">覆盖率</th><th class="p2">系数</th>
+      <th class="sqs">目标数</th><th class="sqs">上线数</th><th class="sqs">上线率</th><th class="sqs">达标数</th><th class="sqs">达标率</th>
+      <th class="sqs">目标数</th><th class="sqs">上线数</th><th class="sqs">上线率</th><th class="sqs">达标数</th><th class="sqs">达标率</th>
+      <th class="phf">目标数</th><th class="phf">上线数</th><th class="phf">上线率</th><th class="phf">达标数</th><th class="phf">达标率</th>
     </tr></thead>`;
+
+  // 五字段单元格组：目标数取官方下发池，上线/达标取明细表
+  const fiveCells = (pool, on, ok, rateCls) =>
+    `<td>${fmt(pool)}</td><td>${fmt(on)}</td>`
+    + `<td class="${sc(on / pool, 0.7)}">${pool ? pct(on / pool) : '—'}</td>`
+    + `<td>${fmt(ok)}</td>`
+    + `<td class="${sc(ok / pool, 0.5)}">${pool ? pct(ok / pool) : '—'}</td>`;
+
   const t3 = ROWS.map(r => {
-    const sq = NO_SQS.has(r.city)
-      ? `<td class="nc" colspan="3">不考核</td>`
-      : `<td>${fmt(r.hp.SQS.pool)}</td><td>${fmt(r.hp.SQS.ok)}</td><td class="${sc(r.sq_rate, 0.7)}">${pct(r.sq_rate)}</td>`;
+    const T = r.tgt_official || {};
+    // 汇总 = 神抢手 + 拼好饭
+    const sqPool = T.sqs || r.hp.SQS.pool;
+    const phPool = T.phf || r.hp.PHF.pool;
+    const isNoSqs = NO_SQS.has(r.city);
+    const allPool = (T.sqs || 0) + (T.phf || 0);
+    const allOn = r.hp.ALL.on;
+    const allOk = r.hp.ALL.ok;
+
+    const sqCells = isNoSqs
+      ? `<td class="nc" colspan="5">不考核</td>`
+      : fiveCells(sqPool, r.hp.SQS.on, r.hp.SQS.ok);
+
     return `<tr>
       <td class="city">${esc(r.city)}</td>
-      <td>${fmt(r.hp.ALL.pool)}</td><td>${fmt(r.hp.ALL.ok)}</td>
-      <td class="${sc(r.hp.ALL.rate, 0.7)}">${pct(r.hp.ALL.rate)}</td>
-      ${sq}
-      <td>${fmt(r.hp.PHF.pool)}</td><td>${fmt(r.hp.PHF.ok)}</td>
-      <td class="${sc(r.ph_rate, 0.7)}">${pct(r.ph_rate)}</td>
-      <td>${fmt(r.p3_meta.pool)}</td><td>${fmt(r.p3_meta.ok)}</td>
-      <td class="${sc(r.p3_rate, 0.6)}">${pct(r.p3_rate)}</td>
-      <td class="${scLow(r.p3_k, 1)}">${r.p3_k === null ? '—' : r.p3_k.toFixed(1)}</td>
+      ${fiveCells(allPool, allOn, allOk)}
+      ${sqCells}
+      ${fiveCells(phPool, r.hp.PHF.on, r.hp.PHF.ok)}
       <td class="${sc(r.proc, 36)}">${r.proc.toFixed(2)}</td></tr>`;
   }).join('');
 
@@ -411,7 +424,7 @@ function renderKpiTables() {
     </div>
     <div class="fc-section" style="padding:0 18px;"><table class="dash">${th2(true)}<tbody>${t2}</tbody></table></div>
 
-    <div class="sub-cap">过程指标明细（②③ 上线/达标取自货盘明细去重表分「P1SQS 神抢手／P2PHF 拼好饭」口径；④ 取考核期 ${M.p3_first.slice(5)} 起日均覆盖率）</div>
+    <div class="sub-cap">过程指标明细 · 三个货盘板块（上线 = 明细表 M 列「达标情况」=达标；达标 = N 列「攻克情况」=攻克，攻克记为达标 ｜ 按来源 E 列拆分：神抢手 = P1，拼好饭 = P2 ｜ ④ P3 取考核期 ${M.p3_first.slice(5)} 起日均覆盖率，见上方实率/预估完成版）</div>
     <div style="padding:0 18px;"><table class="dash">${th3}<tbody>${t3}</tbody></table></div>
 
     <div class="sub-cap" style="color:#c0392b;">⚠️ 负向权益与减免判定（依据《2026年10月城市外卖绩效考核方案-考核框架和关联权益》）</div>
@@ -441,7 +454,11 @@ function renderNotes() {
     + `<b>②神抢手货盘 ／ ③拼好饭货盘</b>：得分=达标率×系数×权重（②30%；③8城20%/东兰凤山35%）×100；`
     + `②系数（10月新调整）<b style="color:#9c1b1b">70-100%=1.2、60-70%=0.8、&lt;60%=0</b>（满系数线由 9 月的 60% 提高至 70%）；`
     + `③系数 <b style="color:#9c1b1b">60-100%=1.2、50-60%=1、30-50%=0.8、&lt;30%=0</b>。<br>`
-    + `<b>②③达标口径</b>：需招商上线在售，且 神抢手商品 全月累计订单≥3单且 GTV≥40元 ／ 拼好饭商品 全月累计订单≥5单且 GTV≥60元。<br>`
+    + `<b>★②③达标口径（本看板取数）</b>：上线数 = 货盘明细 <b>M 列「达标情况」=达标</b>；`
+    + `<b>达标数 = N 列「攻克情况」=攻克</b>（攻克记为达标）。`
+    + `达标率 = 达标数 ÷ 官方下发商品池数；上线率 = 上线数 ÷ 目标数。`
+    + `按 <b>E 列「来源」</b> 拆分：神抢手 = <b>P1</b>，拼好饭 = <b>P2</b>。<br>`
+    + `<b>官方达标条件</b>：需招商上线在售，且 神抢手商品 全月累计订单≥3单且 GTV≥40元 ／ 拼好饭商品 全月累计订单≥5单且 GTV≥60元。<br>`
     + `<b>④P3</b>：得分=日均覆盖率×系数×权重（8城10%/东兰凤山25%）×100；`
     + `系数 <b style="color:#9c1b1b">60-100%=1.2、50-60%=1、30-50%=0.8、&lt;30%=0</b>；达标口径 = 当前结算价≤目标结算价。`
     + `覆盖率取「考核期累计日均」= 考核期（${M.p3_first.slice(5)}–${M.month_days}/${M.month_days}）内各日达标率的算术平均；`

@@ -166,6 +166,8 @@ def read_s1():
 
     trend = OrderedDict()
     meta = defaultdict(dict)
+    # 分区维度（渠道经理 col11）：最新日的目标/完成，用于「分区进度」板块
+    dist_all = defaultdict(lambda: defaultdict(lambda: [0.0, 0.0]))
     for r in it:
         if r[0] is None:
             continue
@@ -185,6 +187,13 @@ def read_s1():
             phf_share=_num(r[46]), day_order=_num(r[17]),
             day_lw=_num(r[19]),
         )
+        # 同一次遍历里按日期累计分区目标/完成（避免二次打开大文件）
+        q = r[11]
+        tgt0, cur0 = _num(r[13]), _num(r[14])
+        if q is not None and tgt0 is not None and cur0 is not None:
+            de = dist_all[d][str(q)]
+            de[0] += tgt0
+            de[1] += cur0
     wb.close()
 
     dates = sorted(trend)
@@ -192,48 +201,28 @@ def read_s1():
         raise RuntimeError('拼好饭-底表未取到 10 月数据')
     last = dates[-1]
 
-    # ---- 分区维度（渠道经理 col11）：最新日的目标/完成，用于「分区进度」板块
-    dist = defaultdict(lambda: {'tgt': 0.0, 'cur': 0.0, 'cities': []})
-    wb2 = openpyxl.load_workbook(SRC_S1, read_only=True, data_only=True)
-    ws2 = wb2['拼好饭-底表']
-    it2 = ws2.iter_rows(values_only=True)
-    for _ in range(3):
-        next(it2)
-    for r in it2:
-        if r[0] is None:
-            continue
-        dt = _to_date(r[0])
-        if dt != last:
-            continue
-        q = r[11]
-        tgt, cur = _num(r[13]), _num(r[14])
-        if q is None or tgt is None or cur is None:
-            continue
-        e = dist[str(q)]
-        e['tgt'] += tgt
-        e['cur'] += cur
-        if r[6]:
-            e['cities'].append(r[6])
-    wb2.close()
+    dist = dist_all.get(last, {})
 
     return dict(dates=dates, trend=trend, meta=meta, last=last,
                 cur={c: trend[last].get(c) for c in CITIES},
                 grade=meta[last],
                 target={c: meta[last][c]['tgt'] for c in CITIES},
-                dist={k: dict(tgt=v['tgt'], cur=v['cur'],
-                              rate=(v['cur'] / v['tgt']) if v['tgt'] else None)
+                dist={k: dict(tgt=v[0], cur=v[1],
+                              rate=(v[1] / v[0]) if v[0] else None)
                       for k, v in dist.items()})
 
 
 def project_s1(d):
-    """S1 月末预估 —— 星期对星期外推（对齐原模板口径）
+    """S1 月末预估 —— 近 7 天每日完成量 + 星期对星期外推
 
-    月末预估 = 实际累计(截至数据日)
-             + Σ 剩余每一天的预估单量
-    预估单量：取本月已有逐日窗口内「同星期几」的历史日单量；
-             若该星期几在窗口内无样本，则退回当月日均单量兜底。
+    数据源：⑥【商品绩效】-拼好饭+神枪手 ·「拼好饭-底表」O 列 MTD 订单量
+    （玉林商对应 8 个城市，见read_s1() 的 trend）
 
-    逐日单量 = MTD 差分（底表可能缺日，需按真实间隔天数折算）。
+    算法：
+      1) 由 MTD 差分还原逐日完成量（底表可能缺日，按真实间隔天数折算）
+      2) 仅取**近 7 天**窗口作为同星期样本池
+      3) 月末预估 = 实际累计(截至数据日) + Σ剩余每一天的预估单量
+         预估单量优先取窗口内「同星期几」样本均值；该星期几无样本时按近7 天日均兜底
     """
     trend, dates = d['trend'], d['dates']
     last = dates[-1]
@@ -253,19 +242,24 @@ def project_s1(d):
                 row[c] = (b - a) / gap
         daily[dates[i]] = row
 
+    # ---- 近 7 天窗口（含数据日当天）
+    win_dates = [dt for dt in dates if (last - dt).days < 7]
+
     out = {}
     for c in CITIES:
         cur = trend[last].get(c)
         if cur is None:
             out[c] = 0
             continue
-        # 同星期几 → 历史日单量列表
+        # 近 7 天窗口内：同星期几 → 单量样本
         by_wd = defaultdict(list)
-        for dt, row in daily.items():
+        for dt in win_dates:
+            row = daily.get(dt) or {}
             if c in row and row[c] is not None:
                 by_wd[dt.weekday()].append(row[c])
-        # 当月日均兜底（用窗口内所有已观测日的均值）
-        allv = [row[c] for row in daily.values()
+        # 近 7 天日均兜底
+        allv = [row[c] for dt in win_dates
+                for row in [daily.get(dt) or {}]
                 if c in row and row[c] is not None]
         fallback = statistics.mean(allv) if allv else 0
 
@@ -274,7 +268,6 @@ def project_s1(d):
             dt = last + datetime.timedelta(days=k)
             wd = dt.weekday()
             samples = by_wd.get(wd) or []
-            # 同星期样本不足 2 个时也允许取均值；无样本用当月日均兜底
             add += statistics.mean(samples) if samples else fallback
         out[c] = cur + add
     return out
@@ -290,22 +283,27 @@ def read_hp():
     hdr = next(it)
     idx = {str(h).lstrip('\ufeff'): i for i, h in enumerate(hdr)}
 
-    stat = {c: {'SQS': {'pool': 0, 'ok': 0, 'kg': 0, 'ord': 0.0, 'amt': 0.0, 'shop': set()},
-                'PHF': {'pool': 0, 'ok': 0, 'kg': 0, 'ord': 0.0, 'amt': 0.0, 'shop': set()}}
+    stat = {c: {'SQS': {'pool': 0, 'on': 0, 'ok': 0, 'kg': 0, 'ord': 0.0, 'amt': 0.0, 'shop': set()},
+                'PHF': {'pool': 0, 'on': 0, 'ok': 0, 'kg': 0, 'ord': 0.0, 'amt': 0.0, 'shop': set()}}
            for c in CITIES}
-    src_stat = defaultdict(lambda: {'pool': 0, 'ok': 0})
-    shop_stat = defaultdict(lambda: {'pool': 0, 'ok': 0, 'ord': 0.0, 'amt': 0.0})
-    # 分区维度（全区所有城市，不受 CITIES 过滤影响）：SQS/PHF 各自的 达标率与攻克率
-    dist = defaultdict(lambda: {'SQS': {'pool': 0, 'ok': 0, 'kg': 0},
-                                'PHF': {'pool': 0, 'ok': 0, 'kg': 0}})
+    src_stat = defaultdict(lambda: {'pool': 0, 'on': 0, 'ok': 0})
+    shop_stat = defaultdict(lambda: {'pool': 0, 'on': 0, 'ok': 0, 'ord': 0.0, 'amt': 0.0})
+    # 分区维度（全区所有城市，不受 CITIES 过滤影响）：SQS/PHF 各自的上线数与达标数
+    dist = defaultdict(lambda: {'SQS': {'pool': 0, 'on': 0, 'ok': 0, 'kg': 0},
+                                'PHF': {'pool': 0, 'on': 0, 'ok': 0, 'kg': 0}})
 
     for r in it:
         if r[0] is None:
             continue
         city = r[idx['城市']]
         src = str(r[idx['来源']] or '')
-        ok = (str(r[idx['达标情况']]).strip() == '达标')
-        kg = (str(r[idx['攻克情况']]).strip() == '攻克')
+        # ★ 口径（用户 2026-10-20 明确）：
+        #   M 列「达标情况」= 上线（招商上线在售）
+        #   N 列「攻克情况」= 达标（攻克记为达标）
+        #   → 上线数 = M列=达标；达标数 = N列=攻克
+        online = (str(r[idx['达标情况']]).strip() == '达标')   # M 列 → 上线
+        ok = (str(r[idx['攻克情况']]).strip() == '攻克')        # N 列 → 达标
+        kg = ok
         key = 'SQS' if src.startswith('神抢手') else ('PHF' if src.startswith('拼好饭') else None)
         if key is None:
             continue
@@ -315,6 +313,7 @@ def read_hp():
         if qn and qn != 'NULL':
             de = dist[qn][key]
             de['pool'] += 1
+            de['on'] += online
             de['ok'] += ok
             de['kg'] += kg
 
@@ -323,6 +322,7 @@ def read_hp():
 
         d = stat[city][key]
         d['pool'] += 1
+        d['on'] += online
         d['ok'] += ok
         d['kg'] += kg
         d['shop'].add(r[idx['商家ID']])
@@ -334,12 +334,14 @@ def read_hp():
             d['amt'] += _num(r[idx['拼好饭实付金额']]) or 0
 
         src_stat[(city, src)]['pool'] += 1
+        src_stat[(city, src)]['on'] += online
         src_stat[(city, src)]['ok'] += ok
 
         mid = r[idx['商家ID']]
         name = r[idx['商家名称']]
         ss = shop_stat[(city, key, mid, name, r[idx['BD MIS ID']])]
         ss['pool'] += 1
+        ss['on'] += online
         ss['ok'] += ok
         ss['ord'] += (_num(r[idx['SQS订单数']]) or 0) if key == 'SQS' else (_num(r[idx['拼好饭订单数']]) or 0)
         ss['amt'] += (_num(r[idx['SQS实付金额']]) or 0) if key == 'SQS' else (_num(r[idx['拼好饭实付金额']]) or 0)
@@ -352,15 +354,20 @@ def read_hp():
         e = {}
         for key in ('SQS', 'PHF'):
             d = stat[c][key]
-            e[key] = dict(pool=d['pool'], ok=d['ok'], kg=d['kg'], ord=round(d['ord']),
-                          amt=round(d['amt']), shop=len(d['shop']),
+            # ★ on=上线数（M列达标情况），ok=达标数（N列攻克情况）
+            e[key] = dict(pool=d['pool'], on=d['on'], ok=d['ok'], kg=d['kg'],
+                          ord=round(d['ord']), amt=round(d['amt']), shop=len(d['shop']),
+                          onrate=(d['on'] / d['pool']) if d['pool'] else None,
                           rate=(d['ok'] / d['pool']) if d['pool'] else None,
                           kgr=(d['kg'] / d['pool']) if d['pool'] else None)
-        tp, to = e['SQS']['pool'] + e['PHF']['pool'], e['SQS']['ok'] + e['PHF']['ok']
-        tk, ts = e['SQS']['kg'] + e['PHF']['kg'], e['SQS']['shop'] and 0
-        e['ALL'] = dict(pool=tp, ok=to, kg=tk,
-                        rate=(to / tp) if tp else None,
-                        kgr=(tk / tp) if tp else None,
+        tp = e['SQS']['pool'] + e['PHF']['pool']
+        ton = e['SQS']['on'] + e['PHF']['on']
+        tok = e['SQS']['ok'] + e['PHF']['ok']
+        tkg = e['SQS']['kg'] + e['PHF']['kg']
+        e['ALL'] = dict(pool=tp, on=ton, ok=tok, kg=tkg,
+                        onrate=(ton / tp) if tp else None,
+                        rate=(tok / tp) if tp else None,
+                        kgr=(tkg / tp) if tp else None,
                         ord=e['SQS']['ord'] + e['PHF']['ord'],
                         amt=e['SQS']['amt'] + e['PHF']['amt'])
         e['shop_all'] = len(stat[c]['SQS']['shop'] | stat[c]['PHF']['shop'])
@@ -373,7 +380,9 @@ def read_hp():
             continue
         shops[(city, key)].append(dict(
             mid=str(mid), name=name, bd=bd,
-            pool=ss['pool'], ok=ss['ok'], rate=(ss['ok'] / ss['pool'] if ss['pool'] else 0),
+            pool=ss['pool'], on=ss['on'], ok=ss['ok'],
+            onrate=(ss['on'] / ss['pool'] if ss['pool'] else 0),
+            rate=(ss['ok'] / ss['pool'] if ss['pool'] else 0),
             ord=round(ss['ord']), amt=round(ss['amt'])))
     for k in shops:
         shops[k].sort(key=lambda x: (-x['ord'], -x['amt']))
@@ -382,18 +391,20 @@ def read_hp():
     # 来源细分（5类）
     src_break = {}
     for c in CITIES:
-        src_break[c] = {s: dict(pool=v['pool'], ok=v['ok'],
+        src_break[c] = {s: dict(pool=v['pool'], on=v['on'], ok=v['ok'],
+                                onrate=(v['on'] / v['pool'] if v['pool'] else None),
                                 rate=(v['ok'] / v['pool'] if v['pool'] else None))
                         for (cc, s), v in src_stat.items() if cc == c}
 
-    # 分区维度明细（神抢手/拼好饭 各自的达标率与攻克率）
+    # 分区维度明细（神抢手/拼好饭 各自的上线数与达标数）
     dist_rows = {}
     for q, e in dist.items():
         dist_rows[q] = {}
         for key in ('SQS', 'PHF'):
             v = e[key]
             dist_rows[q][key] = dict(
-                pool=v['pool'], ok=v['ok'], kg=v['kg'],
+                pool=v['pool'], on=v['on'], ok=v['ok'], kg=v['kg'],
+                onrate=(v['on'] / v['pool']) if v['pool'] else None,
                 rate=(v['ok'] / v['pool']) if v['pool'] else None,
                 kgr=(v['kg'] / v['pool']) if v['pool'] else None)
 
@@ -688,21 +699,28 @@ def build():
         s1_score = min(rate, 1.2) * k1 * W[c]['S1'] if rate else 0
 
         hp = city_hp[c]
-        # ★ 达标率分母 = 官方下发商品池数量；分子仍取明细表达标数
+        # ★ 达标率分母 = 官方下发商品池数量
+        #   分子 = N 列「攻克情况」=攻克 的数量（攻克记为达标）
+        #   上线数 = M 列「达标情况」=达标 的数量 → 上线率 = 上线数 ÷ 目标数
         sq_pool_mine = hp['SQS']['pool']
         sq_pool = T.get('tgt_sqs') or sq_pool_mine
-        sq_ok = hp['SQS']['ok']
+        sq_ok = hp['SQS']['ok']# N 列 攻克数 = 达标数
+        sq_on = hp['SQS']['on']        # M 列 达标情况 = 上线数
         if c in NO_SQS or not sq_pool:
             sq_rate = sq_k = sq_score = None
+            sq_onrate = None
         else:
             sq_rate = (sq_ok / sq_pool) if sq_pool else None
+            sq_onrate = (sq_on / sq_pool) if sq_pool else None
             sq_k = coef(sq_rate, HP_COEF)
             sq_score = sq_rate * sq_k * W[c]['SQS'] if sq_rate else 0
 
         ph_pool_mine = hp['PHF']['pool']
         ph_pool = T.get('tgt_phf') or ph_pool_mine
-        ph_ok = hp['PHF']['ok']
+        ph_ok = hp['PHF']['ok']# N 列 攻克数 = 达标数
+        ph_on = hp['PHF']['on']
         ph_rate = (ph_ok / ph_pool) if ph_pool else None
+        ph_onrate = (ph_on / ph_pool) if ph_pool else None
         ph_k = coef(ph_rate, HP_COEF)
         ph_score = ph_rate * ph_k * W[c]['PHF'] if ph_rate is not None else 0
 
@@ -744,7 +762,9 @@ def build():
             pay_avg=m.get('pay_avg'), pen_rate=m.get('渗透'),
             phf_share=m.get('phf_share'),
             hp=hp, sq_rate=sq_rate, sq_k=sq_k, sq_score=sq_score,
+            sq_onrate=sq_onrate,
             ph_rate=ph_rate, ph_k=ph_k, ph_score=ph_score,
+            ph_onrate=ph_onrate,
             p3_rate=p3r, p3_k=p3_k, p3_score=p3_score,
             p3_meta=p3['meta'][p3['last']].get(c, {}),
             proc=proc, proc_w=pw, proc_pct=(proc / pw if pw else None),
@@ -756,6 +776,8 @@ def build():
             tgt_official=dict(s1=tgt, sqs=sq_pool, phf=ph_pool, p3=p3_pool),
             pool_mine=dict(s1=tgt, sqs=sq_pool_mine, phf=ph_pool_mine, p3=p3_pool_mine),
             ok_count=dict(sqs=sq_ok, phf=ph_ok, p3=p3['meta'][p3['last']].get(c, {}).get('ok')),
+            on_count=dict(sqs=sq_on, phf=ph_on,
+                          p3=p3['meta'][p3['last']].get(c, {}).get('pool')),
         ))
 
     # ---- S1 趋势序列（每城 MTD + 完成率）
