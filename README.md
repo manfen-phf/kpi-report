@@ -21,7 +21,7 @@
 ## 二、日常更新（一键）
 
 1. 把新一天的 Excel 放入上表对应目录（保持原命名规律）。
-2. 双击 **`update.bat`**。
+2. 双击 **`update.bat`**（整个流程约 3~4 分钟，其中取数占绝大部分）。
    - 调 `report_data.py` 重跑取数 → 重新生成 `data.js`
    - 调 `_deploy_api.py` 通过 GitHub API 提交并推送（单次运行只产生 1 个 commit）
    - Pages 通常 30~60 秒刷新生效
@@ -33,6 +33,17 @@ python report_data.py && start index.html
 ```
 
 **鉴权**：`_deploy_api.py` 优先读环境变量 `GITHUB_TOKEN` / `GH_TOKEN`，其次读同目录 `.github_token` 文件，最后回落到本机 Git Credential Manager。**密钥不会提交进仓库**（`.gitignore` 已排除）。
+
+> ⚠️ **`update.bat` 改动规范**（双击闪退的两个原因，务必遵守）
+> 1. **行尾必须 CRLF** —— cmd.exe 解析 bat 依赖 CRLF，LF 会导致解析错乱直接闪退。
+>    `.gitattributes` 已配 `*.bat text eol=crlf`，但**用工具重写文件后要显式转换**：
+>    ```python
+>    raw = open('update.bat','rb').read().replace(b'\r\n', b'\n').replace(b'\n', b'\r\n')
+>    open('update.bat','wb').write(raw)
+>    ```
+> 2. **内容必须纯 ASCII** —— cmd 默认按 GBK 解析 bat，UTF-8 中文会变乱码，
+>    甚至被当成命令执行（报「'文件' 不是内部或外部命令」）。
+>    `chcp 65001` 只影响后续子进程输出，**救不了 bat 自身的编码**。中文提示请放 README，不要放 bat。
 
 ---
 
