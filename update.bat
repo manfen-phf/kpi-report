@@ -9,6 +9,13 @@ if not exist "%PY%" (
     pause & exit /b 1
 )
 
+if not exist "%~dp0.github_token" (
+    echo [NOTE] .github_token not found, will try Git Credential Manager.
+    echo       If deploy fails, create .github_token in this folder with your
+    echo       GitHub Personal Access Token. See README for details.
+    echo.
+)
+
 echo ============================================
 echo   KPI Report - One-Click Update (GitHub Pages)
 echo   Reading latest files from 3 data sources
@@ -31,9 +38,10 @@ echo.
 "%PY%" "%~dp0_deploy_api.py"
 if errorlevel 1 (
     echo.
-    echo [ERROR] Deploy failed.
-    echo        Please make sure you are logged in to github.com via Git Credential Manager,
-    echo        or set the GITHUB_TOKEN environment variable, then retry.
+    echo [ERROR] Deploy failed. See the message above for the fix.
+    echo        Most common cause: no GitHub token available.
+    echo        Fix: create a file named .github_token in this folder,
+    echo              paste a GitHub Personal Access Token (repo scope) into it.
     pause & exit /b 1
 )
 
