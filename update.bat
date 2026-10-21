@@ -41,7 +41,8 @@ if errorlevel 1 (
     echo [ERROR] Deploy failed. See the message above for the fix.
     echo        Most common cause: no GitHub token available.
     echo        Fix: create a file named .github_token in this folder,
-    echo              paste a GitHub Personal Access Token (repo scope) into it.
+    echo              paste a GitHub Personal Access Token into it.
+    echo              Token needs repo scope. See README for details.
     pause & exit /b 1
 )
 
