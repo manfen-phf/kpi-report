@@ -32,7 +32,25 @@
 python report_data.py && start index.html
 ```
 
-**鉴权**：`_deploy_api.py` 优先读环境变量 `GITHUB_TOKEN` / `GH_TOKEN`，其次读同目录 `.github_token` 文件，最后回落到本机 Git Credential Manager。**密钥不会提交进仓库**（`.gitignore` 已排除）。
+**鉴权**：`_deploy_api.py` 按以下优先级取 GitHub token：
+
+| 优先级 | 来源 | 说明 |
+|---|---|---|
+| 1 | 环境变量 `GITHUB_TOKEN` / `GH_TOKEN` | 临时用，不落地 |
+| 2 | 同目录 `.github_token` 文件 | **推荐**，一次配置永久有效 |
+| 3 | 本机 Git Credential Manager | 双击运行时常因非交互环境取不到 |
+
+> ⚠️ **双击 `update.bat` 报「未找到 GitHub token」时的解法**
+>
+> GCM 的凭据存在 Windows 凭据管理器里，`git credential fill` 在双击（非交互）环境下
+> 经常取不到。第 3 种方式因此不可靠，**请改用第 2 种**：
+>
+> 1. 打开 GitHub → Settings → Developer settings → **Personal access tokens → Tokens (classic)**
+> 2. Generate new token，勾选 **`repo`** 权限，生成并复制
+> 3. 在项目目录下新建文件 **`.github_token`**（注意前面有点，无扩展名），把 token 粘进去存为**纯文本**
+> 4. 重新双击 `update.bat`
+>
+> 该文件**已被 `.gitignore` 排除**（`.gitignore` 第 5 行），不会提交进仓库，密钥不会泄露。
 
 > ⚠️ **`update.bat` 改动规范**（双击闪退的两个原因，务必遵守）
 > 1. **行尾必须 CRLF** —— cmd.exe 解析 bat 依赖 CRLF，LF 会导致解析错乱直接闪退。
