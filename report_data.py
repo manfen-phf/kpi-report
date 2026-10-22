@@ -448,7 +448,10 @@ def read_p3():
                 continue
             d = _to_date(r[0])
             day = day or d
-            ok = (str(r[idx['SKU是否达标']]).strip() == '1')
+            # ★「SKU是否达标」列取值类型不统一：
+            #   部分日是字符串 '1'/'0'，部分日是浮点数 1.0/0.0
+            #   统一转 float 再比较，避免 str(1.0)=='1.0' 判负导致整日被跳过
+            ok = (_num(r[idx['SKU是否达标']]) == 1)
 
             # 分区聚合（全区口径，不受 CITIES 过滤）
             qn = str(r[idx['分区']] or '').strip()
