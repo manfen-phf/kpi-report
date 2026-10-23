@@ -51,6 +51,8 @@ echo ============================================
 echo   [DONE] Report updated and deployed.
 echo   Online: https://manfen-phf.github.io/kpi-report/
 echo   (GitHub Pages usually takes 30-60 seconds)
+echo   Local archive: 商品运营分析报告-MMDD-HHMM.html
+echo   (single self-contained file, can be opened directly)
 echo ============================================
 echo.
 pause

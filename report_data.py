@@ -906,6 +906,69 @@ def to_js(d):
     return p, os.path.getsize(p)
 
 
+def make_archive(d):
+    """生成每日 HTML 存档：商品运营分析报告-MMDD-HHMM.html
+
+    存档是**完全自包含的单文件快照**：
+      · index.html 的结构
+      · style.css 内联进 <style>
+      · data.js  的数据内联进 <script>
+      · app.js   内联进 <script>
+    这样单个 html 文件拷到任何地方双击都能正常打开（不依赖外部文件），
+    方便直接发给老板或存档。
+    """
+    idx = os.path.join(OUT_DIR, 'index.html')
+    if not os.path.exists(idx):
+        return None
+    with open(idx, encoding='utf-8', newline='') as f:
+        html = f.read()
+
+    def read(name):
+        p = os.path.join(OUT_DIR, name)
+        if not os.path.exists(p):
+            return None
+        with open(p, encoding='utf-8', newline='') as f:
+            return f.read()
+
+    css = read('style.css')
+    data_js = read('data.js')
+    app_js = read('app.js')
+    if data_js is None or app_js is None:
+        return None
+
+    # data.js 内容形如：window.REPORT_DATA = {...};
+    payload = data_js.strip()
+    if payload.endswith(';'):
+        payload = payload[:-1]
+
+    # 1) CSS 内联
+    if css:
+        html = re.sub(r'<link\s+rel=["\']stylesheet["\']\s+href=["\']style\.css["\']\s*/?>',
+                      lambda m: f'<style>\n{css}\n</style>', html, count=1)
+    # 2) data.js 内联
+    html = re.sub(r'<script\s+src=["\']data\.js["\']\s*>\s*</script>',
+                  lambda m: f'<script>\n{payload}\n</script>', html, count=1)
+    # 3) app.js 内联（放最后，保持执行顺序）
+    html = re.sub(r'<script\s+src=["\']app\.js["\']\s*>\s*</script>',
+                  lambda m: f'<script>\n{app_js}\n</script>', html, count=1)
+
+    # 兜底：若某项没匹配到，插到 </body> 前
+    tail = ''
+    if 'REPORT_DATA' not in html:
+        tail += f'<script>\n{payload}\n</script>\n'
+    if 'REPORT_DATA' in html and 'src="app.js"' in html:
+        tail += f'<script>\n{app_js}\n</script>\n'
+    if tail:
+        html = html.replace('</body>', tail + '</body>')
+
+    stamp = datetime.datetime.now().strftime('%m%d-%H%M')
+    name = f'商品运营分析报告-{stamp}.html'
+    out = os.path.join(OUT_DIR, name)
+    with open(out, 'w', encoding='utf-8', newline='') as f:
+        f.write(html)
+    return name, os.path.getsize(out)
+
+
 if __name__ == '__main__':
     d = build()
     p, size = to_js(d)
@@ -923,3 +986,7 @@ if __name__ == '__main__':
               f"{r['proc']:>8.2f}{f(r['proc_pct']):>8}{r['est_proc']:>9.2f}")
     print()
     print('data.js 已写出:', p, f'({size/1024:.0f} KB)')
+    arch = make_archive(d)
+    if arch:
+        name, sz = arch
+        print('HTML 存档已生成:', name, f'({sz/1024:.0f} KB, 数据已内联, 可直接双击打开)')
