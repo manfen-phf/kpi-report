@@ -22,9 +22,22 @@
 
 1. 把新一天的 Excel 放入上表对应目录（保持原命名规律）。
 2. 双击 **`update.bat`**（整个流程约 3~4 分钟，其中取数占绝大部分）。
-   - 调 `report_data.py` 重跑取数 → 重新生成 `data.js`
+   - 调 `report_data.py` 重跑取数 → 重新生成 `data.js` **+ 当日 HTML 存档**
    - 调 `_deploy_api.py` 通过 GitHub API 提交并推送（单次运行只产生 1 个 commit）
    - Pages 通常 30~60 秒刷新生效
+
+### 每日 HTML 存档
+
+每次运行会在项目目录生成一个 **`商品运营分析报告-MMDD-HHMM.html`** 存档文件，
+例如 `商品运营分析报告-1023-1558.html`。
+
+这个存档是**完全自包含的单文件快照**：
+- `style.css` 内联进 `<style>`
+- `data.js` 的数据内联进 `<script>`
+- `app.js` 内联进 `<script>`
+
+因此**单个 html 文件拷到任何地方双击都能正常打开**，不依赖外部文件 ——
+可以直接微信发给老板、或者当作当日快照存档。
 
 也可以只重跑取数看本地效果：
 
@@ -32,7 +45,25 @@
 python report_data.py && start index.html
 ```
 
-**鉴权**：`_deploy_api.py` 优先读环境变量 `GITHUB_TOKEN` / `GH_TOKEN`，其次读同目录 `.github_token` 文件，最后回落到本机 Git Credential Manager。**密钥不会提交进仓库**（`.gitignore` 已排除）。
+**鉴权**：`_deploy_api.py` 按以下优先级取 GitHub token：
+
+| 优先级 | 来源 | 说明 |
+|---|---|---|
+| 1 | 环境变量 `GITHUB_TOKEN` / `GH_TOKEN` | 临时用，不落地 |
+| 2 | 同目录 `.github_token` 文件 | **推荐**，一次配置永久有效 |
+| 3 | 本机 Git Credential Manager | 双击运行时常因非交互环境取不到 |
+
+> ⚠️ **双击 `update.bat` 报「未找到 GitHub token」时的解法**
+>
+> GCM 的凭据存在 Windows 凭据管理器里，`git credential fill` 在双击（非交互）环境下
+> 经常取不到。第 3 种方式因此不可靠，**请改用第 2 种**：
+>
+> 1. 打开 GitHub → Settings → Developer settings → **Personal access tokens → Tokens (classic)**
+> 2. Generate new token，勾选 **`repo`** 权限，生成并复制
+> 3. 在项目目录下新建文件 **`.github_token`**（注意前面有点，无扩展名），把 token 粘进去存为**纯文本**
+> 4. 重新双击 `update.bat`
+>
+> 该文件**已被 `.gitignore` 排除**（`.gitignore` 第 5 行），不会提交进仓库，密钥不会泄露。
 
 > ⚠️ **`update.bat` 改动规范**（双击闪退的两个原因，务必遵守）
 > 1. **行尾必须 CRLF** —— cmd.exe 解析 bat 依赖 CRLF，LF 会导致解析错乱直接闪退。
@@ -109,7 +140,7 @@ python report_data.py && start index.html
 | `report_data.py` | **取数与计分生成器**（唯一事实来源） |
 | `_deploy_api.py` | GitHub API 部署（Git Data API，单 commit，重试 non-fast-forward） |
 | `update.bat` | 一键：重跑取数 + 部署 |
-| `商品运营分析报告-*.html` | 历史每日存档（9 月口径旧版 + 新版首日留档） |
+| `商品运营分析报告-*.html` | 历史每日存档（9 月口径旧版 + 每日自动生成的自包含单文件快照） |
 
 > 注：`data.js` 单文件约 700 KB，含 8 城全量商家明细，故采用「数据外置 + 页面加载」结构而非单文件内联，保证 Pages 首屏速度。
 

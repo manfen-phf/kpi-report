@@ -38,8 +38,27 @@ def get_token_from_gcm():
 if not TOKEN:
     TOKEN = get_token_from_gcm()
 if not TOKEN:
-    sys.stderr.write("ERROR: 未找到 GitHub token。请先通过 Git Credential Manager 登录 github.com，\n"
-                     "或设置环境变量 GITHUB_TOKEN。\n")
+    # 给出可操作的修复步骤（双击运行时 GCM 常因非交互环境取不到凭据）
+    _token_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".github_token")
+    sys.stderr.write(
+        "ERROR: 未找到 GitHub token。\n"
+        "\n"
+        "双击运行时 Git Credential Manager 常因非交互环境取不到凭据，\n"
+        "请改用「token 文件」方式（推荐，一次配置永久有效）：\n"
+        "\n"
+        "  1) 打开 GitHub → Settings → Developer settings → Personal access tokens\n"
+        "     勾选 repo 权限，生成 token（classic）\n"
+        "  2) 新建文件：%s\n"
+        "     把 token 粘进去存为纯文本（无 BOM、无引号）\n"
+        "  3) 重新双击 update.bat\n"
+        "\n"
+        "该文件已被 .gitignore 排除，不会提交到仓库。\n"
+        "\n"
+        "其他方式：\n"
+        "  · 设置环境变量 GITHUB_TOKEN\n"
+        "  · 在有交互的终端里先执行一次 git push 完成 GCM 登录\n"
+        % _token_file
+    )
     sys.exit(2)
 
 REPO = "manfen-phf/kpi-report"
