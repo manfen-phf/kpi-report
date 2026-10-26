@@ -4,5 +4,3 @@ __pycache__/
 .DS_Store
 .github_token
 .token
-_daycache/
-*.pkl
